@@ -1,0 +1,28 @@
+(async function loadRound() {
+  const params = new URLSearchParams(window.location.search);
+  const roundId = params.get("round") || "tour-2026";
+  try {
+    const response = await fetch(`../rounds/${encodeURIComponent(roundId)}.json`);
+    if (!response.ok) throw new Error(`Rondeconfig niet gevonden (${response.status})`);
+    window.ROUND_CONFIG = await response.json();
+    window.ROUND_ID = window.ROUND_CONFIG.id;
+    await loadRoundScript("./storage.js");
+    await loadRoundScript("./app.js");
+  } catch (error) {
+    document.body.innerHTML = `<main class="layout"><section class="panel"><h1>Ronde kon niet worden geladen</h1><p>${escapeLoaderText(error.message)}</p><p>Controleer <code>?round=${escapeLoaderText(roundId)}</code>.</p></section></main>`;
+  }
+})();
+
+function loadRoundScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`Script kon niet worden geladen: ${src}`));
+    document.body.appendChild(script);
+  });
+}
+
+function escapeLoaderText(value) {
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}

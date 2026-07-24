@@ -1,0 +1,12 @@
+backend/node_modules/
+backend/.env
+backend/.env.*
+!backend/.env.example
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+coverage/
+dist/
+src/

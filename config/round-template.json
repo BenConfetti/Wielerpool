@@ -1,0 +1,112 @@
+{
+  "id": "voorbeeld-ronde-2026",
+  "name": "Voorbeeldronde 2026",
+  "competition": "Voorbeeldronde",
+  "year": 2026,
+  "status": "setup",
+  "currency": "EUR",
+  "storageKeyPrefix": "wielerpool-voorbeeld-ronde-2026",
+  "theme": {
+    "accent": "#0072ce",
+    "accentDark": "#005ea8",
+    "general": "#ffd900",
+    "points": "#009a44",
+    "youth": "#ffffff",
+    "mountainAccent": "#d61f26"
+  },
+  "settings": {
+    "stake": 10,
+    "budget": 20000,
+    "stageCount": 21,
+    "starterCount": 10,
+    "reserveCount": 10,
+    "prizePotSplit": {
+      "final": 50,
+      "daily": 50
+    },
+    "scoringDepth": {
+      "general": 5,
+      "points": 5,
+      "mountain": 5,
+      "youth": 3
+    },
+    "prizeWeights": {
+      "final": {
+        "general": 3,
+        "general2": 0,
+        "general3": 0,
+        "points": 2,
+        "youth": 1,
+        "mountain": 1
+      },
+      "daily": {
+        "general": 3,
+        "points": 2,
+        "youth": 1,
+        "mountain": 1,
+        "stageWinner": 3
+      }
+    }
+  },
+  "jerseys": {
+    "general": {
+      "label": "Leiderstrui",
+      "color": "#ffd91a",
+      "pattern": "solid"
+    },
+    "points": {
+      "label": "Puntentrui",
+      "color": "#009f4d",
+      "pattern": "solid"
+    },
+    "mountain": {
+      "label": "Bergtrui",
+      "color": "#ffffff",
+      "accent": "#d9252a",
+      "pattern": "dots"
+    },
+    "youth": {
+      "label": "Jongerentrui",
+      "color": "#ffffff",
+      "pattern": "solid"
+    },
+    "stageWinner": {
+      "label": "Etappewinnaar",
+      "color": "#1d4ed8",
+      "background": "#ffffff"
+    }
+  },
+  "exchangeWindows": [
+    {
+      "label": "Rustdag 1",
+      "afterStage": 9,
+      "from": "",
+      "until": ""
+    },
+    {
+      "label": "Rustdag 2",
+      "afterStage": 15,
+      "from": "",
+      "until": ""
+    }
+  ],
+  "files": {
+    "startlist": "./data/startlist.csv",
+    "prices": "./data/prices.csv",
+    "withdrawals": "./data/withdrawals.csv",
+    "teams": "./data/teams.json",
+    "stages": [
+      {
+        "number": 1,
+        "name": "Etappe 1",
+        "type": "sprint",
+        "date": "2026-01-01",
+        "route": "",
+        "km": 0,
+        "results": "./data/stage-1-combined.csv"
+      }
+    ]
+  },
+  "corrections": [],
+  "dataLabel": "Rondedata"
+}

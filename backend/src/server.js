@@ -1,0 +1,3 @@
+import {createApp} from "./app.js"; import {config} from "./config.js"; import {pool} from "./db.js"; import {repository} from "./repository.js";
+const server=createApp(repository).listen(config.port,()=>console.log(`Wielerpool API: http://127.0.0.1:${config.port}`));
+async function stop(){server.close(async()=>{await pool.end();process.exit(0)})} process.on("SIGINT",stop);process.on("SIGTERM",stop);

@@ -1,0 +1,91 @@
+{
+  "id": "vuelta-2026",
+  "name": "Vuelta 2026",
+  "competition": "Vuelta a España",
+  "year": 2026,
+  "status": "setup",
+  "currency": "EUR",
+  "storageKeyPrefix": "wielerpool-vuelta-2026",
+  "theme": {
+    "accent": "#d71920",
+    "accentDark": "#a30f15",
+    "general": "#d71920",
+    "points": "#009f4d",
+    "youth": "#ffffff",
+    "mountainAccent": "#2563eb"
+  },
+  "settings": {
+    "stake": 10,
+    "budget": 20000,
+    "stageCount": 21,
+    "starterCount": 10,
+    "reserveCount": 10,
+    "prizePotSplit": {
+      "final": 50,
+      "daily": 50
+    },
+    "scoringDepth": {
+      "general": 5,
+      "points": 5,
+      "mountain": 5,
+      "youth": 3
+    },
+    "prizeWeights": {
+      "final": {
+        "general": 3,
+        "general2": 0,
+        "general3": 0,
+        "points": 2,
+        "youth": 1,
+        "mountain": 1
+      },
+      "daily": {
+        "general": 3,
+        "points": 2,
+        "youth": 1,
+        "mountain": 1,
+        "stageWinner": 3
+      }
+    }
+  },
+  "jerseys": {
+    "general": {
+      "label": "Rode trui",
+      "color": "#d71920",
+      "pattern": "solid"
+    },
+    "points": {
+      "label": "Groene trui",
+      "color": "#009f4d",
+      "pattern": "solid"
+    },
+    "mountain": {
+      "label": "Bolletjestrui",
+      "color": "#ffffff",
+      "accent": "#1d4ed8",
+      "pattern": "dots-blue"
+    },
+    "youth": {
+      "label": "Witte trui",
+      "color": "#ffffff",
+      "pattern": "solid"
+    },
+    "stageWinner": {
+      "label": "Etappewinnaar",
+      "color": "#1d4ed8",
+      "background": "#ffffff"
+    }
+  },
+  "exchangeWindows": [],
+  "files": {
+    "startlist": "./data/vuelta-2026-startlist.csv",
+    "prices": "./data/vuelta-2026-bc.csv",
+    "withdrawals": "./data/vuelta-2026-withdrawals.csv",
+    "teams": "./data/vuelta-2026-teams.json",
+    "stages": []
+  },
+  "corrections": [],
+  "dataVersion": "1",
+  "stageSchedule": [],
+  "dataLabel": "Vueltadata"
+}

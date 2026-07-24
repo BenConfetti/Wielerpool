@@ -1,0 +1,133 @@
+{
+  "budget": 20000,
+  "teams": [
+    {
+      "name": "Anna",
+      "teamName": "7AK3P -1",
+      "color1": "#1d4ed8",
+      "color2": "#f97316",
+      "riders": "Ayuso Juan, 2437.5\nVingegaard Jonas, 4531.25\nEvenepoel Remco, 2437.5\nPogačar Tadej, 5000\nLipowitz Florian, 2593.75\nPidcock Tom, 625\nBerckmoes Jenno, 156.25\nArtz Huub, 156.25\nTurgis Anthony, 156.25\nRusso Clément, 156.25",
+      "reserves": "Baudin Alex, 156.25\nSimmons Quinn, 156.25\nDebruyne Ramses, 156.25\nvan Eetvelt Lennert, 156.25\nPluimers Rick, 156.25\nGarcía Pierna Raúl, 156.25\nCastrillo Pablo, 156.25\nVacek Mathias, 156.25\nvan Wilder Ilan, 156.25\nMatthews Michael, 156.25"
+    },
+    {
+      "name": "Bas",
+      "teamName": "7AK3P -2",
+      "color1": "#0f766e",
+      "color2": "#7c3aed",
+      "riders": "Ayuso Juan, 2437.5\ndel Toro Isaac, 3562.5\nSeixas Paul, 2906.25\nVingegaard Jonas, 4531.25\nEvenepoel Remco, 2437.5\nJohannessen Tobias Halland, 968.75\nMartinez Lenny, 812.5\nPluimers Rick, 156.25\nMatthews Michael, 156.25\nStewart Jake, 156.25",
+      "reserves": "van Mechelen Vlad, 156.25\nQuinn Sean, 156.25\nLe Berre Mathis, 156.25\nVeistroffer Baptiste, 156.25\nTarling Joshua, 156.25\nFrigo Marco, 156.25\nBiesterbos Frits, 156.25\nVinokurov Nicolas, 156.25\nVercher Mattéo, 156.25\nvan Asbroeck Tom, 156.25"
+    },
+    {
+      "name": "Cato",
+      "teamName": "7AK3A -1",
+      "color1": "#be123c",
+      "color2": "#0f172a",
+      "riders": "Ayuso Juan, 2437.5\nPogačar Tadej, 5000\nLipowitz Florian, 2593.75\nSeixas Paul, 2906.25\ndel Toro Isaac, 3562.5\nSkjelmose Mattias, 734.375\nDebruyne Ramses, 156.25\nBaudin Alex, 156.25\nSimmons Quinn, 156.25\nCastrillo Pablo, 156.25",
+      "reserves": "Tejada Harold, 156.25\nAlaphilippe Julian, 156.25\nVerona Carlos, 156.25\nAsgreen Kasper, 156.25\nde Lie Arnaud (DNF #3), 345\nSkujiņš Toms, 156.25\nArtz Huub, 156.25\nBerckmoes Jenno, 156.25\nTurgis Anthony, 156.25\nFrigo Marco, 156.25"
+    },
+    {
+      "name": "Daan",
+      "teamName": "7AK3A -2",
+      "color1": "#ea580c",
+      "color2": "#2563eb",
+      "riders": "Vingegaard Jonas, 4531.25\nEvenepoel Remco, 2437.5\nPogačar Tadej, 5000\nAyuso Juan, 2437.5\nLipowitz Florian, 2593.75\nvan Eetvelt Lennert, 156.25\nJegat Jordan, 234.375\nFrigo Marco, 156.25\nTejada Harold, 156.25\nAlaphilippe Julian, 156.25",
+      "reserves": "Affini Edoardo, 234.375\nVerona Carlos, 156.25\nAsgreen Kasper, 156.25\nSkujiņš Toms, 156.25\nBaudin Alex, 156.25\nSimmons Quinn, 156.25\nHessmann Michel, 156.25\nPage Hugo, 156.25\nAskey Lewis, 156.25\nCraps Lars, 156.25"
+    },
+    {
+      "name": "Eva",
+      "teamName": "10P -1",
+      "color1": "#581c87",
+      "color2": "#06b6d4",
+      "riders": "Philipsen Jasper, 3250\nPedersen Mads, 2593.75\nMerlier Tim, 2437.5\nGirmay Biniam, 625\nKanter Max, 312.5\nWærenskjold Søren, 312.5\nKooij Olav, 1781.25\nFretin Milan, 968.75\nBittner Pavel, 812.5\nAckermann Pascal, 312.5",
+      "reserves": "Gaviria Fernando, 312.5\nBauhaus Phil, 312.5\nKuss Sepp, 312.5\nHagenes Per Strand, 234.375\nRusso Clément, 156.25\nStewart Jake, 156.25\nPluimers Rick, 156.25\nMatthews Michael, 156.25\nVingegaard Jonas, 4531.25\nWalker Max, 156.25"
+    },
+    {
+      "name": "Finn",
+      "teamName": "10P -2",
+      "color1": "#0369a1",
+      "color2": "#c026d3",
+      "riders": "Philipsen Jasper, 3250\nPedersen Mads, 2593.75\nGirmay Biniam, 625\nKanter Max, 312.5\nWærenskjold Søren, 312.5\nGaviria Fernando, 312.5\nLe Berre Mathis, 156.25\nKooij Olav, 1781.25\nBauhaus Phil, 312.5\nGate Aaron, 156.25",
+      "reserves": "del Toro Isaac, 3562.5\nSeixas Paul, 2906.25\nHagenes Per Strand, 234.375\nGermani Lorenzo, 156.25\nDhondt Robbe, 156.25\nvan der Poel Mathieu, 1625\nVerstrynge Emiel, 156.25\nSteinhauser Georg, 156.25\nGodon Dorian, 312.5\nParet-peintre Valentin, 656.25"
+    },
+    {
+      "name": "Gwen",
+      "teamName": "7AKJ -1",
+      "color1": "#334155",
+      "color2": "#38bdf8",
+      "riders": "del Toro Isaac, 3562.5\nSeixas Paul, 2906.25\nGarcía Pierna Raúl, 156.25\nVacek Mathias, 156.25\nCarapaz Richard, 968.75\nPiganzoli Davide, 812.5\nPidcock Tom, 625\nPhilipsen Jasper, 3250\nMerlier Tim, 2437.5\nPedersen Mads, 2593.75",
+      "reserves": "Grégoire Romain, 734.375\nCostiou Ewen, 156.25\nvan Mechelen Vlad, 156.25\nVercher Mattéo, 156.25\nVinokurov Nicolas, 156.25\nPage Hugo, 156.25\nBiesterbos Frits, 156.25\nTarling Joshua, 156.25\nAskey Lewis, 156.25\nWalker Max, 156.25"
+    },
+    {
+      "name": "Hugo",
+      "teamName": "7AKJ -2",
+      "color1": "#1e3a8a",
+      "color2": "#f97316",
+      "riders": "Tiberi Antonio, 812.5\nFretin Milan, 968.75\nMartinez Lenny, 812.5\nRiccitello Matthew, 734.375\nGrégoire Romain, 734.375\nJohannessen Tobias Halland, 968.75\nYates Adam, 1937.5\nvan der Poel Mathieu, 1625\nParet-peintre Valentin, 656.25\nProdhomme Nicolas, 656.25",
+      "reserves": "Philipsen Jasper, 3250\nVauquelin Kévin, 1625\nEvenepoel Remco, 2437.5\nBittner Pavel, 812.5\nUijtdebroeks Cian, 656.25\nDhondt Robbe, 156.25\nHessmann Michel, 156.25\nCraps Lars, 156.25\nSteinhauser Georg, 156.25\nGermani Lorenzo, 156.25"
+    },
+    {
+      "name": "Iris",
+      "teamName": "7AKB -1",
+      "color1": "#7f1d1d",
+      "color2": "#0f766e",
+      "riders": "Vauquelin Kévin, 1625\nCarapaz Richard, 968.75\nHealy Ben, 812.5\nHindley Jai, 234.375\nSkjelmose Mattias, 734.375\nBaudin Alex, 156.25\nvan Eetvelt Lennert, 156.25\nMerlier Tim, 2437.5\nGirmay Biniam, 625\nKanter Max, 312.5",
+      "reserves": "Pogačar Tadej, 5000\nLipowitz Florian, 2593.75\nProdhomme Nicolas, 656.25\nJegat Jordan, 234.375\nMartinez Lenny, 812.5\nPiganzoli Davide, 812.5\nJohannessen Tobias Halland, 968.75\nTejada Harold, 156.25\nFrigo Marco, 156.25\nBernal Egan, 234.375"
+    },
+    {
+      "name": "Jules",
+      "teamName": "7AKB -2",
+      "color1": "#b91c1c",
+      "color2": "#1f2937",
+      "riders": "Paret-peintre Valentin, 656.25\nProdhomme Nicolas, 656.25\nJegat Jordan, 234.375\nFrigo Marco, 156.25\nJorgenson Matteo, 1625\nGarcía Pierna Raúl, 156.25\nSimmons Quinn, 156.25\nWellens Tim, 781.25\nStuyven Jasper, 656.25\nAsgreen Kasper, 156.25",
+      "reserves": "Vingegaard Jonas, 4531.25\nPogačar Tadej, 5000\nCarapaz Richard, 968.75\nPidcock Tom, 625\nHealy Ben, 812.5\nKuss Sepp, 312.5\nVauquelin Kévin, 1625\nTejada Harold, 156.25\nVoisard Yannis, 156.25\nTræen Torstein, 156.25"
+    },
+    {
+      "name": "Kiki",
+      "teamName": "10AK -1",
+      "color1": "#312e81",
+      "color2": "#f97316",
+      "riders": "Vacek Mathias, 156.25\nPidcock Tom, 625\nGrégoire Romain, 734.375\nPiganzoli Davide, 812.5\nYates Adam, 1937.5\nJohannessen Tobias Halland, 968.75\nVauquelin Kévin, 1625\nMartinez Lenny, 812.5\nSkjelmose Mattias, 734.375\nTiberi Antonio, 812.5",
+      "reserves": "Ayuso Juan, 2437.5\nRiccitello Matthew, 734.375\nEvenepoel Remco, 2437.5\nJorgenson Matteo, 1625\nHindley Jai, 234.375\nLipowitz Florian, 2593.75\nvan Eetvelt Lennert, 156.25\nGarcía Pierna Raúl, 156.25\nBaudin Alex, 156.25\nSimmons Quinn, 156.25"
+    },
+    {
+      "name": "Lars",
+      "teamName": "10AK -2",
+      "color1": "#92400e",
+      "color2": "#2563eb",
+      "riders": "Riccitello Matthew, 734.375\nvan Eetvelt Lennert, 156.25\nCarapaz Richard, 968.75\nJorgenson Matteo, 1625\nHealy Ben, 812.5\nHindley Jai, 234.375\nGarcía Pierna Raúl, 156.25\nJegat Jordan, 234.375\nVacek Mathias, 156.25\nPiganzoli Davide, 812.5",
+      "reserves": "Vingegaard Jonas, 4531.25\nGanna Filippo, 234.375\ndel Toro Isaac, 3562.5\nPhilipsen Jasper, 3250\nJohannessen Tobias Halland, 968.75\nMcnulty Brandon, 625\nAranburu Alex, 156.25\nDelettre Alexandre, 156.25\nWright Fred, 156.25\nRomo Javier, 156.25"
+    },
+    {
+      "name": "Mila",
+      "teamName": "5AK5P -1",
+      "color1": "#0f172a",
+      "color2": "#06b6d4",
+      "riders": "Grégoire Romain, 734.375\nYates Adam, 1937.5\nVauquelin Kévin, 1625\nParet-peintre Valentin, 656.25\nTiberi Antonio, 812.5\nTeunissen Mike, 156.25\nWærenskjold Søren, 312.5\nKooij Olav, 1781.25\nAckermann Pascal, 312.5\nBittner Pavel, 812.5",
+      "reserves": "Vingegaard Jonas, 4531.25\nPhilipsen Jasper, 3250\nvan der Poel Mathieu, 1625\nHagenes Per Strand, 234.375\nOldani Stefano, 156.25\nEngelhardt Felix, 156.25\nHermans Quinten, 156.25\nvan den Broek Frank, 156.25\nBiermans Jenthe, 156.25\nCampenaerts Victor, 234.375"
+    },
+    {
+      "name": "Noor",
+      "teamName": "5AK5P -2",
+      "color1": "#6d28d9",
+      "color2": "#ea580c",
+      "riders": "Riccitello Matthew, 734.375\nProdhomme Nicolas, 656.25\nHindley Jai, 234.375\nHealy Ben, 812.5\nJorgenson Matteo, 1625\nGaviria Fernando, 312.5\nPluimers Rick, 156.25\nMatthews Michael, 156.25\nBauhaus Phil, 312.5\nGate Aaron, 156.25",
+      "reserves": "Vingegaard Jonas, 4531.25\nPhilipsen Jasper, 3250\nSeixas Paul, 2906.25\nKuss Sepp, 312.5\nHagenes Per Strand, 234.375\nOliveira Nelson, 156.25\nTratnik Jan, 156.25\nLipowitz Florian, 2593.75\nCharmig Anthon, 156.25\nStannard Robert, 156.25"
+    },
+    {
+      "name": "SJORS",
+      "teamName": "sportpools SJORS",
+      "color1": "#111827",
+      "color2": "#38bdf8",
+      "riders": "Philipsen Jasper, 3250\nPogačar Tadej, 5000\nVingegaard Jonas, 4531.25\nSeixas Paul, 2906.25\nMerlier Tim, 2437.5\nKooij Olav, 1781.25\nWærenskjold Søren, 312.5\nvan Eetvelt Lennert, 156.25\nPlapp Luke, 156.25\nSimmons Quinn, 156.25",
+      "reserves": "van Gils Maxim, 234.375\nBaudin Alex, 156.25\nGodon Dorian, 312.5\nSlock Liam, 156.25\nDebruyne Ramses, 156.25\nBerthet Clément (DNS #2), 0\nEngelhardt Felix, 156.25\nGate Aaron, 156.25\nCharmig Anthon, 156.25\nGuernalec Thibault, 156.25"
+    },
+    {
+      "name": "KEJE",
+      "teamName": "sportpools KEJE",
+      "color1": "#111827",
+      "color2": "#f97316",
+      "riders": "Vingegaard Jonas, 4531.25\nPogačar Tadej, 5000\nSeixas Paul, 2906.25\nVacek Mathias, 156.25\nMartinez Lenny, 812.5\nCarapaz Richard, 968.75\nKanter Max, 312.5\nWærenskjold Søren, 312.5\nPhilipsen Jasper, 3250\nBaudin Alex, 156.25",
+      "reserves": "Storer Michael, 156.25\nvan Eetvelt Lennert, 156.25\nGate Aaron, 156.25\nMärkl Niklas, 156.25\nSlock Liam, 156.25\nStannard Robert, 156.25\nNicolau Joel, 156.25\nAllegaert Piet, 156.25\nBraz Afonso Clément, 156.25\nGradek Kamil, 156.25"
+    }
+  ]
+}

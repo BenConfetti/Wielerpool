@@ -1,0 +1,587 @@
+openapi: 3.1.0
+info:
+  title: Wielerpool API
+  version: 1.0.0
+  description: Versieerbaar contract voor de gedeelde Tour- en Vuelta-backend.
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+paths:
+  /auth/login:
+    post:
+      security: []
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Ingelogd
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /auth/logout:
+    post:
+      operationId: logout
+      responses:
+        "204":
+          description: Uitgelogd
+  /rounds/{roundId}:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    get:
+      security: []
+      operationId: getRound
+      responses:
+        "200":
+          description: Rondeconfiguratie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rounds/{roundId}/standings:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    get:
+      security: []
+      operationId: getStandings
+      parameters:
+        - name: throughStage
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Berekende standen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Standings"
+  /rounds/{roundId}/participants:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    get:
+      security: []
+      operationId: listParticipants
+      responses:
+        "200":
+          description: Deelnemers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Participant"
+  /rounds/{roundId}/riders:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    get:
+      security: []
+      operationId: listRiders
+      responses:
+        "200":
+          description: Renners en actuele prijzen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rider"
+  /rounds/{roundId}/teams:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    post:
+      operationId: createTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamInput"
+      responses:
+        "201":
+          description: Team aangemaakt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /rounds/{roundId}/teams/{teamId}:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+      - $ref: "#/components/parameters/TeamId"
+    get:
+      operationId: getTeam
+      responses:
+        "200":
+          description: Team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: updateTeam
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          description: Huidig teamversienummer ter voorkoming van overschrijven.
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamInput"
+      responses:
+        "200":
+          description: Team bijgewerkt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /rounds/{roundId}/swaps:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    post:
+      operationId: createSwap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwapInput"
+      responses:
+        "201":
+          description: Wissel geregistreerd
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Swap"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /admin/rounds/{roundId}/results:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    post:
+      operationId: importStageResults
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageResultImport"
+      responses:
+        "202":
+          description: Import geaccepteerd en gevalideerd
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /admin/rounds/{roundId}/settings:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    put:
+      operationId: updateRoundSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoundSettings"
+      responses:
+        "200":
+          description: Instellingen bijgewerkt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundSettings"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /admin/rounds/{roundId}/corrections:
+    parameters:
+      - $ref: "#/components/parameters/RoundId"
+    post:
+      operationId: createCorrection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorrectionInput"
+      responses:
+        "201":
+          description: Correctie toegevoegd
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: wielerpool_session
+  parameters:
+    RoundId:
+      name: roundId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    TeamId:
+      name: teamId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: Niet ingelogd
+    Forbidden:
+      description: Onvoldoende rechten
+    NotFound:
+      description: Niet gevonden
+    Conflict:
+      description: Versieconflict of bestaand record
+    ValidationError:
+      description: Validatiefout
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    Session:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+    User:
+      type: object
+      required: [id, email, displayName, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [participant, admin]
+    Round:
+      type: object
+      required: [id, name, competition, year, status, currency, settings]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        competition:
+          type: string
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [setup, test, registration, active, finished, archived]
+        currency:
+          type: string
+        theme:
+          type: object
+          additionalProperties: true
+        settings:
+          $ref: "#/components/schemas/RoundSettings"
+    RoundSettings:
+      type: object
+      additionalProperties: true
+      required: [stake, budget, stageCount, starterCount, reserveCount, prizePotSplit]
+      properties:
+        stake:
+          type: number
+          minimum: 0
+        budget:
+          type: number
+          minimum: 0
+        stageCount:
+          type: integer
+          minimum: 1
+        starterCount:
+          type: integer
+          minimum: 1
+        reserveCount:
+          type: integer
+          minimum: 0
+        scoringDepth:
+          type: object
+          additionalProperties:
+            type: integer
+        prizeWeights:
+          type: object
+          additionalProperties: true
+        prizePotSplit:
+          $ref: "#/components/schemas/PrizePotSplit"
+        exchangeWindows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExchangeWindow"
+    PrizePotSplit:
+      type: object
+      additionalProperties: false
+      required: [final, daily]
+      properties:
+        final:
+          type: number
+          minimum: 0
+          maximum: 100
+        daily:
+          type: number
+          minimum: 0
+          maximum: 100
+    ExchangeWindow:
+      type: object
+      required: [label, afterStage]
+      properties:
+        label:
+          type: string
+        afterStage:
+          type: integer
+          minimum: 0
+        from:
+          type: string
+          format: date-time
+        until:
+          type: string
+          format: date-time
+    Participant:
+      type: object
+      required: [id, roundId, displayName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roundId:
+          type: string
+        displayName:
+          type: string
+        teamName:
+          type: string
+        colorPrimary:
+          type: string
+        colorSecondary:
+          type: string
+    Rider:
+      type: object
+      required: [id, roundId, name, displayName, price]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roundId:
+          type: string
+        name:
+          type: string
+        displayName:
+          type: string
+        cyclingTeam:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        metadata:
+          type: object
+          additionalProperties: true
+    TeamInput:
+      type: object
+      additionalProperties: false
+      required: [participantId, riders]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        riders:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamRiderInput"
+    TeamRiderInput:
+      type: object
+      additionalProperties: false
+      required: [riderId, role, position]
+      properties:
+        riderId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [starter, reserve]
+        position:
+          type: integer
+          minimum: 1
+    Team:
+      allOf:
+        - $ref: "#/components/schemas/TeamInput"
+        - type: object
+          required: [id, roundId, version]
+          properties:
+            id:
+              type: string
+              format: uuid
+            roundId:
+              type: string
+            version:
+              type: integer
+            submittedAt:
+              type: string
+              format: date-time
+    SwapInput:
+      type: object
+      additionalProperties: false
+      required: [teamId, afterStage, outgoingRiderId, incomingRiderId]
+      properties:
+        teamId:
+          type: string
+          format: uuid
+        afterStage:
+          type: integer
+          minimum: 0
+        outgoingRiderId:
+          type: string
+          format: uuid
+        incomingRiderId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+    Swap:
+      allOf:
+        - $ref: "#/components/schemas/SwapInput"
+        - type: object
+          required: [id, createdAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            createdAt:
+              type: string
+              format: date-time
+    StageResultImport:
+      type: object
+      additionalProperties: false
+      required: [stageNumber, rows]
+      properties:
+        stageNumber:
+          type: integer
+          minimum: 1
+        sourceFile:
+          type: string
+        rows:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: true
+            required: [riderName]
+            properties:
+              riderName:
+                type: string
+    CorrectionInput:
+      type: object
+      additionalProperties: false
+      required: [amount, reason]
+      properties:
+        stageId:
+          type: string
+          format: uuid
+        participantId:
+          type: string
+          format: uuid
+        classification:
+          type: string
+        amount:
+          type: number
+        reason:
+          type: string
+    Standings:
+      type: object
+      required: [roundId, calculatedThroughStage, classifications, money]
+      properties:
+        roundId:
+          type: string
+        calculatedThroughStage:
+          type: integer
+          minimum: 0
+        classifications:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              required: [participantId, rank, value]
+              properties:
+                participantId:
+                  type: string
+                  format: uuid
+                rank:
+                  type: integer
+                value:
+                  type: number
+        money:
+          type: array
+          items:
+            type: object
+            required: [participantId, amount]
+            properties:
+              participantId:
+                type: string
+                format: uuid
+              amount:
+                type: number
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

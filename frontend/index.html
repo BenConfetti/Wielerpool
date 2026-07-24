@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wielerpool</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow" id="roundEyebrow">Wielerpool</p>
+        <h1 id="roundTitle">Wielerpool</h1>
+      </div>
+      <div class="header-actions">
+        <button id="loadExampleButton" type="button">Voorbeeld laden</button>
+        <button id="resetButton" type="button" class="secondary">Reset</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Hoofdnavigatie">
+      <button class="tab-button active" type="button" data-tab-target="intro">Intro</button>
+      <button class="tab-button" type="button" data-tab-target="teamselectie">Teamselectie</button>
+      <button class="tab-button" type="button" data-tab-target="stand">Stand</button>
+      <button class="tab-button" type="button" data-tab-target="prijzenpot">Prijzenpot</button>
+      <button class="tab-button" type="button" data-tab-target="voortgang">Voortgang</button>
+      <button class="tab-button" type="button" data-tab-target="tourdata"><span id="roundDataLabel">Rondedata</span></button>
+      <button class="tab-button" type="button" data-tab-target="feedback">Feedback</button>
+      <button class="tab-button" type="button" data-tab-target="admin">Admin</button>
+    </nav>
+
+    <main class="layout">
+      <section class="tab-panel active" data-tab-panel="intro">
+        <section class="panel intro-panel">
+          <h2>Intro</h2>
+          <p class="hint" id="roundIntroText">Kies teams, importeer uitslagen en controleer per klassement hoe scores en geldbedragen zijn opgebouwd.</p>
+          <section class="rules-summary">
+            <h3>Belangrijke spelregels</h3>
+            <ul>
+              <li>Per etappe tellen de beste vijf actieve renners per team mee voor algemeen, punten en berg. Bij jongeren tellen alleen de beste drie jongeren mee.</li>
+              <li>Heeft een team minder dan drie meetellende jongeren, dan telt dat team niet mee in het jongerenklassement en komt het onderaan met toelichting <strong>te weinig renners</strong>.</li>
+              <li>DNF, OTL, DSQ en OUT gelden vanaf de volgende etappe. DNS geldt vanaf dezelfde etappe.</li>
+              <li>Rustdagwissels mogen alleen binnen de ingestelde wisselvensters in Admin, behalve als de test-override aan staat.</li>
+            </ul>
+          </section>
+          <div id="teamVisuals" class="team-visuals"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="teamselectie">
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Teams</h2>
+            <div class="button-row">
+              <button id="saveTeamsButton" type="button">Opslaan</button>
+              <button id="addTeamButton" type="button">Team toevoegen</button>
+            </div>
+          </div>
+          <label class="game-change-toggle">
+            <input id="gameChangeModeInput" type="checkbox">
+            Wijzigingen tellen mee voor het spel vanaf nu en komen in de wissellog
+          </label>
+          <label class="game-change-toggle">
+            <input id="restDayOverrideInput" type="checkbox">
+            Test-override: spelwissel toestaan buiten rustdag
+          </label>
+          <div id="teamSaveStatus" class="save-status" aria-live="polite"></div>
+          <div id="teams"></div>
+          <section class="team-selection-matrix-panel">
+            <h3>Selectiematrix</h3>
+            <p class="hint">S = starter, R = reserve. De kleur bij totaal wordt donkerder als een renner vaker gekozen is.</p>
+            <div id="teamSelectionMatrix" class="team-selection-matrix"></div>
+          </section>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="stand">
+        <section class="panel results-panel">
+          <div class="section-heading">
+            <h2>Standen</h2>
+            <div class="button-row">
+              <button id="calculateButton" type="button">Bereken</button>
+              <button id="recalculateButton" type="button" class="secondary">Herbereken vanaf etappe 2</button>
+            </div>
+          </div>
+          <div id="results" class="results-grid"></div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="section-heading">
+            <h2>Details</h2>
+            <button id="clearDetailButton" type="button" class="secondary">Sluit detail</button>
+          </div>
+          <div id="details" class="detail-box">Klik op een regel in een klassement of ploegenklassement om de opbouw te zien.</div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="prijzenpot">
+        <section class="panel prize-pot-panel">
+          <h2>Prijzenpot</h2>
+          <div id="prizePotData" class="prize-pot-data">Nog geen prijzenschema.</div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="voortgang">
+        <section class="panel">
+          <h2>Voortgang per etappe</h2>
+          <p class="hint">Per etappe zie je per team en per klassement welke renners meetellen: vijf per klassement, drie bij jongeren.</p>
+          <div id="progressData" class="progress-data">Nog geen berekening.</div>
+        </section>
+        <section class="panel">
+          <h2>Rennersprestaties</h2>
+          <div id="riderPerformanceData" class="rider-performance-data">Nog geen berekening.</div>
+        </section>
+        <section class="panel">
+          <h2>Wissellog</h2>
+          <p class="hint">Automatische wissels gebeuren wanneer een startrenner uitvalt. Handmatige rustdagwissels komen hier ook te staan zodra die invoer is toegevoegd.</p>
+          <div id="swapLogData" class="swap-log-data">Nog geen wisselingen.</div>
+        </section>
+        <section class="panel">
+          <h2>Grafieken</h2>
+          <div id="chartsData" class="charts-data">Nog geen grafiekdata.</div>
+        </section>
+        <section class="panel">
+          <h2>Truien per etappe</h2>
+          <div id="jerseyLogData" class="data-table">Laden...</div>
+        </section>
+        <section class="panel">
+          <h2>Tussenstanden per etappe</h2>
+          <div id="historyData" class="history-data">Nog geen geschiedenis.</div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="tourdata">
+        <section class="panel">
+          <h2>Excel-import</h2>
+          <p class="hint">Zet nieuwe etappebestanden in <code>wielerpool/input</code>. De test-app gebruikt nu de geconverteerde bestanden voor etappe 2 t/m 13.</p>
+          <input id="excelUploadInput" type="file" accept=".xlsx,.xls">
+          <p id="excelUploadStatus" class="hint">Upload is alvast voorbereid; verwerking van Excel loopt nu nog via de lokale converter.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Feitelijke uitslagen</h2>
+          <div id="tourResultsData" class="data-table">Laden...</div>
+        </section>
+
+        <section class="panel">
+          <h2>Startlijst en BC-lijst</h2>
+          <div id="startlistData" class="data-table">Laden...</div>
+        </section>
+
+        <section class="panel">
+          <h2>Uitgevallen renners</h2>
+          <div id="withdrawnRidersData" class="data-table">Laden...</div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="feedback">
+        <section class="panel feedback-panel">
+          <div class="section-heading">
+            <h2>Feedback</h2>
+          </div>
+          <form id="feedbackForm" class="feedback-form">
+            <div class="feedback-grid">
+              <label>
+                Naam
+                <input id="feedbackNameInput" autocomplete="name" placeholder="Je naam">
+              </label>
+              <label>
+                Team
+                <select id="feedbackTeamInput">
+                  <option value="">Geen team gekozen</option>
+                </select>
+              </label>
+              <label>
+                Type
+                <select id="feedbackTypeInput">
+                  <option>Bug</option>
+                  <option>Vraag</option>
+                  <option>Idee</option>
+                  <option>Regel</option>
+                  <option>Data</option>
+                </select>
+              </label>
+              <label>
+                Onderwerp
+                <input id="feedbackSubjectInput" placeholder="Kort onderwerp">
+              </label>
+            </div>
+            <label>
+              Feedback
+              <textarea id="feedbackMessageInput" rows="5" placeholder="Wat valt je op, wat klopt niet, of wat zou beter kunnen?"></textarea>
+            </label>
+            <div class="button-row">
+              <button type="submit">Feedback insturen</button>
+              <span id="feedbackStatus" class="save-status" aria-live="polite"></span>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="admin">
+        <section id="adminLoginPanel" class="panel admin-login-panel">
+          <h2>Admin</h2>
+          <p class="hint">Admin is afgeschermd in deze testversie. Wachtwoord: <code>koers</code>.</p>
+          <div class="admin-login-row">
+            <label>
+              Wachtwoord
+              <input id="adminPasswordInput" type="password" autocomplete="current-password">
+            </label>
+            <button id="adminUnlockButton" type="button">Open admin</button>
+            <span id="adminLoginStatus" class="save-status" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <div id="adminContent" class="admin-content is-hidden">
+        <section class="panel admin-dashboard-panel">
+          <h2>Controlepaneel</h2>
+          <div id="adminOverviewData" class="admin-overview-data">Laden...</div>
+        </section>
+
+        <section class="panel settings">
+          <div class="section-heading">
+            <h2>Admin</h2>
+            <div class="button-row">
+              <button id="saveAdminButton" type="button">Admin opslaan</button>
+            </div>
+          </div>
+          <div id="adminSaveStatus" class="save-status" aria-live="polite"></div>
+          <p class="hint">Algemene poolinstellingen en prijzenschema. Verhoudingen zijn gewichten: 3 telt dus drie keer zo zwaar als 1.</p>
+          <div class="field-grid">
+            <label>
+              Inleg per deelnemer
+              <input id="stakeInput" type="number" min="0" step="0.5" value="10">
+            </label>
+            <label>
+              BC-budget per deelnemer
+              <input id="budgetInput" type="number" min="0" step="100" value="20000">
+            </label>
+            <label>
+              Aantal etappes
+              <input id="stageCountInput" type="number" min="1" step="1" value="21">
+            </label>
+            <label>
+              Eindklassementen (% van pot)
+              <input id="finalPotPercentageInput" type="number" min="0" max="100" step="1" value="50">
+            </label>
+            <label>
+              Dagprijzen (% van pot)
+              <input id="dailyPotPercentageInput" type="number" min="0" max="100" step="1" value="50">
+            </label>
+          </div>
+          <p class="hint">De percentages voor eindklassementen en dagprijzen moeten samen 100% zijn.</p>
+
+          <h3 class="admin-subheading">Prijzenschema</h3>
+          <div id="prizeWeightEditor" class="prize-weight-editor"></div>
+
+          <h3 class="admin-subheading">Wisselvensters</h3>
+          <p class="hint">Per ronde kun je hier instellen wanneer deelnemers hun rustdagwissels mogen opslaan. De test-override in Teamselectie blijft dit omzeilen.</p>
+          <div id="exchangeWindowEditor" class="exchange-window-editor"></div>
+
+          <details class="admin-collapsible">
+            <summary>BC-prijslijst aanpassen</summary>
+            <p class="hint">Deze waarden bepalen de kosten van renners in de teamselectie. Wijzigingen werken direct door in budgetten.</p>
+            <div id="bcPriceEditor" class="bc-price-editor">Laden...</div>
+          </details>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Feedback-inzendingen</h2>
+            <div class="button-row">
+              <button id="exportFeedbackButton" type="button" class="secondary">Exporteer CSV</button>
+              <button id="clearFeedbackButton" type="button" class="secondary">Wis feedback</button>
+            </div>
+          </div>
+          <p class="hint">In deze testversie staat feedback lokaal in deze browser. In productie kan ditzelfde overzicht vanuit een database/API gevuld worden.</p>
+          <div id="feedbackList" class="feedback-list">Nog geen feedback.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Adminlog</h2>
+            <div class="button-row">
+              <button id="exportAdminLogButton" type="button" class="secondary">Exporteer CSV</button>
+              <button id="clearAdminLogButton" type="button" class="secondary">Wis log</button>
+            </div>
+          </div>
+          <p class="hint">Log van wijzigingen in instellingen, prijzenschema, BC-prijzen en adminacties.</p>
+          <div id="adminLogData" class="data-table">Nog geen adminwijzigingen.</div>
+        </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="./round-loader.js"></script>
+  </body>
+</html>
