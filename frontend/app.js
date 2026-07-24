@@ -455,12 +455,109 @@ function applyRoundConfig() {
   const eyebrow = document.getElementById("roundEyebrow");
   const title = document.getElementById("roundTitle");
   const dataLabel = document.getElementById("roundDataLabel");
-  const intro = document.getElementById("roundIntroText");
   if (eyebrow) eyebrow.textContent = `${roundLabel} ${ROUND_CONFIG.status === "setup" ? "opbouwversie" : "testversie"}`;
   if (title) title.textContent = `${ROUND_CONFIG.name || "Wielerpool"}-pool`;
   if (dataLabel) dataLabel.textContent = ROUND_CONFIG.dataLabel || "Rondedata";
-  if (intro) intro.textContent = `Testversie voor de ${ROUND_CONFIG.name || "wieler"}-pool. Kies teams, importeer uitslagen en controleer per klassement hoe scores en geldbedragen zijn opgebouwd.`;
 }
+
+function renderRoundIntro() {
+  const container = document.getElementById("roundIntroContent");
+  if (!container) return;
+  if (ROUND_CONFIG.intro?.template !== "vuelta-pool") {
+    container.innerHTML = `
+      <p class="hint">Testversie voor de ${escapeHtml(ROUND_CONFIG.name || "wieler")}–pool. Kies teams, importeer uitslagen en controleer per klassement hoe scores en geldbedragen zijn opgebouwd.</p>
+      <section class="rules-summary">
+        <h3>Belangrijke spelregels</h3>
+        <ul>
+          <li>Per etappe tellen de beste vijf actieve renners per team mee voor algemeen, punten en berg. Bij jongeren tellen alleen de beste drie jongeren mee.</li>
+          <li>DNF, OTL, DSQ en OUT gelden vanaf de volgende etappe. DNS geldt vanaf dezelfde etappe.</li>
+          <li>Rustdagwissels mogen alleen binnen de ingestelde wisselvensters in Admin, behalve als de test-override aan staat.</li>
+        </ul>
+      </section>`;
+    return;
+  }
+
+  const settings = state.settings;
+  const scoringDepth = ROUND_SETTINGS.scoringDepth || {};
+  const split = getPrizePotSplit(state);
+  const weights = getPrizeWeights(state);
+  const teamCount = state.teams.length;
+  const pot = teamCount * Number(settings.stake || 0);
+  const finalPot = pot * split.final / 100;
+  const dailyPot = pot * split.daily / 100;
+  const finalWeight = sumFinalPrizeWeights(weights.final);
+  const dailyWeight = sumClassificationWeights(weights.daily) + Number(weights.daily.stageWinner || 0);
+  const stages = Math.max(1, Number(settings.stageCount || 1));
+  const finalAmount = (key) => finalWeight ? finalPot * Number(weights.final[key] || 0) / finalWeight : 0;
+  const dailyAmount = (key) => dailyWeight ? dailyPot * Number(weights.daily[key] || 0) / dailyWeight / stages : 0;
+  const generalPlaces = getGeneralFinalPlacePrizes(weights, finalPot, finalWeight);
+  const generalPlaceAmount = (place) => generalPlaces.find((item) => item.place === place)?.amount || 0;
+  const noPotNote = teamCount
+    ? `De actuele pot is ${formatCurrency(pot)} op basis van ${teamCount} deelnemer${teamCount === 1 ? "" : "s"} à ${formatCurrency(settings.stake)}.`
+    : `Er zijn nog geen deelnemers ingevoerd. De bedragen hieronder staan daarom op ${formatCurrency(0)} en lopen automatisch mee zodra teams worden toegevoegd.`;
+
+  container.innerHTML = `
+    <section class="intro-copy">
+      <h3>Doel van het spel</h3>
+      <p>Natuurlijk het algemeen klassement winnen. De winnaar krijgt, dit keer bij de Vuelta, een paar rode sokken. Maar er is ook een ploegenklassement waarin de inleg wordt verdeeld. Die inleg is voor deze testversie ${formatCurrency(settings.stake)} per deelnemer.</p>
+
+      <h3>Hoe win ik de rode trui?</h3>
+      <p>Je maakt een selectie van ${formatNumber(STARTER_COUNT)} renners en ${formatNumber(RESERVE_COUNT)} wissels met een budget van ${formatNumber(settings.budget)} BC. Van je actieve renners tellen alleen je ${formatNumber(scoringDepth.general || 5)} beste renners uit de daguitslag mee voor het algemeen klassement. De tijden van die renners opgeteld vormen de tijd die jouw team in het algemeen klassement van deze pool krijgt.</p>
+
+      <h3>Blijft mijn team drie weken hetzelfde?</h3>
+      <p>Nee. Wanneer een renner uitvalt, wordt deze automatisch gewisseld met je eerste beschikbare reserve. Bij een DNF, OTL, DSQ of OUT gebeurt dat vanaf de volgende etappe. Bij een DNS wordt de renner diezelfde etappe nog gewisseld.</p>
+      <p>Daarnaast mag je tijdens de ingestelde wisselvensters rond de rustdagen vrij wisselen tussen je startteam en de reserves. Je kunt geen nieuwe renners aan je selectie toevoegen.</p>
+
+      <h3>Hoe kan ik geld winnen?</h3>
+      <p>${noPotNote} Van de totale pot gaat ${formatNumber(split.final)}% naar de eindklassementen en ${formatNumber(split.daily)}% naar de dagprijzen. De actuele verdeling is:</p>
+      <h4>Eindprijzen</h4>
+      <ul>
+        <li>Algemeen klassement, plek 1: ${formatCurrency(generalPlaceAmount(1))}</li>
+        ${Number(weights.final.general2 || 0) > 0 ? `<li>Algemeen klassement, plek 2: ${formatCurrency(generalPlaceAmount(2))}</li>` : ""}
+        ${Number(weights.final.general3 || 0) > 0 ? `<li>Algemeen klassement, plek 3: ${formatCurrency(generalPlaceAmount(3))}</li>` : ""}
+        <li>Puntenklassement: ${formatCurrency(finalAmount("points"))}</li>
+        <li>Jongerenklassement: ${formatCurrency(finalAmount("youth"))}</li>
+        <li>Bergklassement: ${formatCurrency(finalAmount("mountain"))}</li>
+      </ul>
+      <h4>Dagprijzen per etappe</h4>
+      <ul>
+        <li>Leider algemeen klassement: ${formatCurrency(dailyAmount("general"))}</li>
+        <li>Leider puntenklassement: ${formatCurrency(dailyAmount("points"))}</li>
+        <li>Leider jongerenklassement: ${formatCurrency(dailyAmount("youth"))}</li>
+        <li>Leider bergklassement: ${formatCurrency(dailyAmount("mountain"))}</li>
+        <li>Etappewinnaar in je team: ${formatCurrency(dailyAmount("stageWinner"))}</li>
+      </ul>
+      <p>Hebben meerdere deelnemers de etappewinnaar in hun team, dan delen zij die prijs. Heeft niemand de etappewinnaar, dan wordt het bedrag opgespaard en toegevoegd aan de prijs voor de winnaar van de laatste etappe.</p>
+
+      <h3>Strategieën</h3>
+      <p>Je doel is om de nummer vijf van je team zo hoog mogelijk in de daguitslag te krijgen. Neem bijvoorbeeld zeven of acht renners voor het algemeen klassement op in je startteam. Je kunt daarbij leunen op het jongeren- of bergklassement, of vol voor het algemeen klassement gaan. Buiten die renners ben je vrij in je strategie.</p>
+      <ul>
+        <li>Met het puntenklassement kun je veel prijzengeld verzamelen, maar als je niet bovenaan staat kan die keuze weinig opleveren.</li>
+        <li>Je kunt op de bergtrui inzetten, met het risico dat deze renners bewust veel tijd verliezen in het algemeen klassement.</li>
+        <li>Je kunt op de jongerentrui inzetten, maar met weinig jongeren kan één mindere renner je resultaat flink beïnvloeden.</li>
+        <li>Je kunt kiezen voor ontsnappers. Een renner die normaal niet bij je beste vijf zit, kan vanuit een succesvolle vlucht opeens veel tijdwinst en een dagprijs pakken.</li>
+        <li>Je kunt gaan voor meesterknechten die zo lang mogelijk bij hun kopman blijven. Als dat niet lukt, kunnen ze zich echter ook bewust laten uitzakken.</li>
+      </ul>
+      <p>Met andere woorden: probeer uit en smeed je eigen tactiek.</p>
+    </section>
+
+    <section class="rules-summary">
+      <h3>Spelregels</h3>
+      <ul>
+        <li>Iedere deelnemer selecteert ${formatNumber(STARTER_COUNT)} starters en ${formatNumber(RESERVE_COUNT)} reserves binnen een budget van ${formatNumber(settings.budget)} BC.</li>
+        <li>Per etappe tellen voor algemeen, punten en berg de beste ${formatNumber(scoringDepth.general || 5)} actieve renners mee. Voor het jongerenklassement tellen de beste ${formatNumber(scoringDepth.youth || 3)} jongeren mee.</li>
+        <li>Een team met minder dan ${formatNumber(scoringDepth.youth || 3)} meetellende jongeren doet die etappe niet mee voor het jongerenklassement en komt onderaan met de toelichting <strong>te weinig renners</strong>.</li>
+        <li>De opgetelde officiële tijden van de meetellende renners bepalen de teamtijd in het algemeen klassement.</li>
+        <li>DNF, OTL, DSQ en OUT leiden vanaf de volgende etappe tot een automatische vervanging door de eerste beschikbare reserve. DNS geldt vanaf dezelfde etappe.</li>
+        <li>Vrij wisselen kan alleen binnen de door de beheerder ingestelde wisselvensters rond rustdagen en uitsluitend tussen de bestaande starters en reserves.</li>
+        <li>De totale prijzenpot is de inleg per deelnemer maal het aantal deelnemers. Percentages en gewichten uit Admin bepalen de verdeling over eind- en dagprijzen.</li>
+        <li>Gedeelde prijzen worden gelijk verdeeld onder de deelnemers die op die prijs recht hebben.</li>
+        <li>Niet uitgekeerd etappewinnaarsgeld wordt gereserveerd voor de winnaar van de laatste etappe.</li>
+        <li>Correcties in uitslagen, uitvallers of spelinstellingen kunnen door de beheerder worden verwerkt en leiden tot een herberekening van de stand.</li>
+      </ul>
+    </section>`;
+}
+
 function render() {
   applyRoundConfig();
   els.stake.value = state.settings.stake;
@@ -469,6 +566,7 @@ function render() {
   const prizePotSplit = getPrizePotSplit(state);
   if (els.finalPotPercentage) els.finalPotPercentage.value = prizePotSplit.final;
   if (els.dailyPotPercentage) els.dailyPotPercentage.value = prizePotSplit.daily;
+  renderRoundIntro();
   renderAdminSettings();
   renderTeams();
   renderStages();

@@ -87,5 +87,8 @@
   "corrections": [],
   "dataVersion": "1",
   "stageSchedule": [],
-  "dataLabel": "Vueltadata"
+  "dataLabel": "Vueltadata",
+  "intro": {
+    "template": "vuelta-pool"
+  }
 }
