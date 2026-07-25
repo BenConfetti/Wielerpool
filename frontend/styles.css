@@ -2252,3 +2252,88 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* Mobiele presentatielaag; desktop blijft ongewijzigd. */
+@media (max-width: 700px) {
+  body { font-size: 14px; line-height: 1.38; overflow-wrap: anywhere; }
+  .app-header { gap: 7px; padding: 8px; }
+  .app-header h1 { font-size: 21px; line-height: 1.15; }
+  .tabs {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .12);
+    overscroll-behavior-x: contain;
+    padding: 0 6px;
+    position: sticky;
+    scrollbar-color: var(--accent) #eeeeee;
+    scrollbar-width: thin;
+    top: 0;
+    z-index: 30;
+  }
+  .tab-button {
+    flex: 0 0 auto;
+    font-size: 13px;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+  .tab-button.active { padding-top: 8px; }
+  .layout { padding: 7px 8px 18px; }
+  .panel { padding: 7px 0; }
+  .panel h2 { font-size: 18px; margin-bottom: 7px; }
+  .intro-copy, .rules-summary, .prize-rules { font-size: 14px; line-height: 1.5; }
+  button, input, select { min-height: 44px; }
+  button { padding: 9px 12px; }
+  input, select, textarea { font-size: 16px; max-width: 100%; padding: 8px; }
+  label { font-size: 13px; }
+  .button-row > button { flex: 1 1 140px; }
+  .field-grid,
+  .admin-weight-grid,
+  .feedback-grid,
+  .admin-overview-grid,
+  .prize-pot-summary,
+  .detail-two-columns,
+  .chart-team-picker { grid-template-columns: minmax(0, 1fr); }
+  .game-change-toggle {
+    grid-template-columns: 28px minmax(0, 1fr);
+    line-height: 1.35;
+    min-height: 48px;
+    padding: 7px 9px;
+  }
+  .game-change-toggle input { min-height: 24px; width: 24px; }
+  .prize-weight-editor,
+  .prize-pot-overview,
+  .exchange-window-editor,
+  .feedback-list,
+  .team-selection-matrix,
+  .detail-box,
+  .data-table,
+  .bc-price-editor {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-color: var(--accent) #eeeeee;
+    scrollbar-width: thin;
+  }
+  .prize-weight-editor table,
+  .prize-pot-overview table,
+  .exchange-window-editor table,
+  .feedback-list table,
+  .team-selection-matrix table,
+  .detail-box table { min-width: 640px; }
+  .data-table th:first-child,
+  .data-table td:first-child,
+  .bc-price-editor th:first-child,
+  .bc-price-editor td:first-child,
+  .team-selection-matrix th:first-child,
+  .team-selection-matrix td:first-child {
+    background: #ffffff;
+    box-shadow: 2px 0 3px rgba(0, 0, 0, .08);
+    left: 0;
+    position: sticky;
+    z-index: 2;
+  }
+  th, td { font-size: 13px; padding: 7px 6px; }
+  details > summary { min-height: 44px; padding: 11px 4px; }
+  .admin-collapsible summary { font-size: 15px; }
+  .stage-strip-item { min-height: 48px; }
+  .standing h3 { font-size: 15px; padding: 8px; }
+  .standing th, .standing td { font-size: 12px; padding: 6px 4px; }
+}
