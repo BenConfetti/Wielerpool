@@ -1515,7 +1515,7 @@ function normalizeHexColor(color) {
 
 function collectPendingTeamChanges() {
   return state.teams.map((team, index) => {
-    if (participantAccess && !participantMatches(team)) return null;
+    if (!document.querySelector(`[data-team-name="${index}"]`)) return null;
     const active = readSelectedRidersFromDom(index, "rider");
     const reserves = readSelectedRidersFromDom(index, "reserve");
     const nextRiders = serializeRiderArray(active);
@@ -3671,7 +3671,7 @@ function saveFromForm() {
   state.settings.exchangeWindows = readExchangeWindowsFromForm();
 
   state.teams.forEach((team, index) => {
-    if (participantAccess && !participantMatches(team)) return;
+    if (!document.querySelector(`[data-team-name="${index}"]`)) return;
     team.name = document.querySelector(`[data-team-name="${index}"]`)?.value || team.name;
     team.teamName = document.querySelector(`[data-team-title="${index}"]`)?.value || team.teamName || "";
     team.color1 = document.querySelector(`[data-team-color1="${index}"]`)?.value || team.color1 || "#f6d32d";
