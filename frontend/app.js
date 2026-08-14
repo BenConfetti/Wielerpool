@@ -485,7 +485,7 @@ function applyRoundConfig() {
 function renderRoundIntro() {
   const container = document.getElementById("roundIntroContent");
   if (!container) return;
-  if (state.settings.introHtml) {
+  if (hasVisibleIntroContent(state.settings.introHtml)) {
     container.innerHTML = sanitizeIntroHtml(state.settings.introHtml);
     return;
   }
@@ -617,6 +617,10 @@ function render() {
 
 function activateTab(tabName) {
   document.querySelectorAll("[data-tab-target]").forEach((button) => {
+  if (tabName === "admin") {
+    renderRoundIntro();
+    renderAdminSettings();
+  }
     button.classList.toggle("active", button.dataset.tabTarget === tabName);
   });
   document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
@@ -693,7 +697,9 @@ function renderAdminSettings() {
   state.settings.prizePotSplit = normalizePrizePotSplit(state.settings.prizePotSplit);
   state.settings.prizeWeights = normalizePrizeWeights(state.settings.prizeWeights);
   if (els.introEditor && document.activeElement !== els.introEditor) {
-    els.introEditor.innerHTML = sanitizeIntroHtml(state.settings.introHtml || document.getElementById("roundIntroContent")?.innerHTML || "");
+    const savedIntro = sanitizeIntroHtml(state.settings.introHtml || "");
+    const currentIntro = document.getElementById("roundIntroContent")?.innerHTML || "";
+    els.introEditor.innerHTML = hasVisibleIntroContent(savedIntro) ? savedIntro : sanitizeIntroHtml(currentIntro);
     els.introEditor.dataset.adminPreviousValue = els.introEditor.innerHTML;
     delete els.introEditor.dataset.edited;
   }
@@ -4444,6 +4450,17 @@ function formatCurrency(value) {
 }
 
 function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function hasVisibleIntroContent(value) {
+  const parsed = new DOMParser().parseFromString(String(value || ""), "text/html");
+  return Boolean(parsed.body.textContent.trim());
+}
+
 function sanitizeIntroHtml(value) {
   const documentFragment = new DOMParser().parseFromString(`<div>${String(value || "")}</div>`, "text/html");
   const root = documentFragment.body.firstElementChild;
@@ -4459,12 +4476,6 @@ function sanitizeIntroHtml(value) {
     if (allowedClass) element.className = allowedClass;
   });
   return root.innerHTML;
-}
-
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
 }
 
 function escapeAttr(value) {
