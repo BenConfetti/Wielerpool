@@ -20,6 +20,7 @@
 
     <nav class="tabs" aria-label="Hoofdnavigatie">
       <button class="tab-button active" type="button" data-tab-target="intro">Intro</button>
+      <button class="tab-button" type="button" data-tab-target="mijnteam">Mijn team</button>
       <button class="tab-button" type="button" data-tab-target="teamselectie">Teamselectie</button>
       <button class="tab-button" type="button" data-tab-target="stand">Stand</button>
       <button class="tab-button" type="button" data-tab-target="prijzenpot">Prijzenpot</button>
@@ -38,7 +39,7 @@
         </section>
       </section>
 
-      <section class="tab-panel" data-tab-panel="teamselectie">
+      <section class="tab-panel" data-tab-panel="mijnteam">
         <section class="panel">
           <section class="participant-access" aria-labelledby="participantAccessTitle">
             <h2 id="participantAccessTitle">Mijn selectie</h2>
@@ -55,7 +56,7 @@
             <div id="participantAccessStatus" class="save-status" aria-live="polite"></div>
           </section>
           <div class="section-heading">
-            <h2>Teamselectie</h2>
+            <h2>Renners selecteren</h2>
             <div class="button-row">
               <button id="saveTeamsButton" type="button">Opslaan</button>
             </div>
@@ -70,6 +71,14 @@
           </label>
           <div id="teamSaveStatus" class="save-status" aria-live="polite"></div>
           <div id="teams"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="teamselectie">
+        <section class="panel">
+          <h2>Aangemaakte teams</h2>
+          <div id="participantTeamsData">Nog geen teams.</div>
+
           <section class="team-selection-matrix-panel">
             <h3>Selectiematrix</h3>
             <p class="hint">S = starter, R = reserve. De kleur bij totaal wordt donkerder als een renner vaker gekozen is.</p>
