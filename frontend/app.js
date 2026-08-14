@@ -73,6 +73,7 @@ let withdrawalRecords = [];
 let feedbackItems = loadFeedback();
 let adminLogItems = loadAdminLog();
 let adminUnlocked = sessionStorage.getItem(`${STORAGE_PREFIX}-admin-unlocked`) === "1";
+let participantAccess = loadParticipantAccess();
 
 const els = {
   stake: document.getElementById("stakeInput"),
@@ -83,6 +84,10 @@ const els = {
   teams: document.getElementById("teams"),
   teamSelectionMatrix: document.getElementById("teamSelectionMatrix"),
   teamSaveStatus: document.getElementById("teamSaveStatus"),
+  participantName: document.getElementById("participantNameInput"),
+  participantTeamName: document.getElementById("participantTeamNameInput"),
+  participantAccessStatus: document.getElementById("participantAccessStatus"),
+  closeSelection: document.getElementById("closeSelectionButton"),
   gameChangeMode: document.getElementById("gameChangeModeInput"),
   restDayOverride: document.getElementById("restDayOverrideInput"),
   stages: document.getElementById("stages"),
@@ -102,8 +107,6 @@ const els = {
   historyData: document.getElementById("historyData"),
   chartsData: document.getElementById("chartsData"),
   teamVisuals: document.getElementById("teamVisuals"),
-  excelUpload: document.getElementById("excelUploadInput"),
-  excelUploadStatus: document.getElementById("excelUploadStatus"),
   feedbackForm: document.getElementById("feedbackForm"),
   feedbackName: document.getElementById("feedbackNameInput"),
   feedbackTeam: document.getElementById("feedbackTeamInput"),
@@ -144,7 +147,20 @@ document.getElementById("resetButton").addEventListener("click", async () => {
   render();
 });
 
-document.getElementById("addTeamButton").addEventListener("click", () => {
+document.getElementById("retrieveSelectionButton")?.addEventListener("click", () => {
+  openParticipantSelection(false);
+});
+
+document.getElementById("createSelectionButton")?.addEventListener("click", () => {
+  openParticipantSelection(true);
+});
+
+document.getElementById("closeSelectionButton")?.addEventListener("click", () => {
+  participantAccess = null;
+  sessionStorage.removeItem(`${STORAGE_PREFIX}-participant-access`);
+  render();
+});
+document.getElementById("addTeamButton")?.addEventListener("click", () => {
   saveFromForm();
   state.teams.push({
     name: `Deelnemer ${state.teams.length + 1}`,
@@ -568,6 +584,7 @@ function render() {
   if (els.dailyPotPercentage) els.dailyPotPercentage.value = prizePotSplit.daily;
   renderRoundIntro();
   renderAdminSettings();
+  renderParticipantAccess();
   renderTeams();
   renderStages();
   renderResults();
@@ -897,13 +914,81 @@ function applyWithdrawalRecordsToTourRiders() {
   });
 }
 
-function renderTeams() {
-  els.teams.innerHTML = "";
-  if (state.teams.length === 0) {
-    els.teams.innerHTML = "<p class=\"hint\">Nog geen teams.</p>";
+function loadParticipantAccess() {
+  try {
+    return JSON.parse(sessionStorage.getItem(`${STORAGE_PREFIX}-participant-access`)) || null;
+  } catch {
+    return null;
+  }
+}
+
+function participantMatches(team, access = participantAccess) {
+  if (!team || !access) return false;
+  return normalizeName(team.name) === normalizeName(access.name)
+    && normalizeName(team.teamName) === normalizeName(access.teamName);
+}
+
+function openParticipantSelection(createIfMissing) {
+  const name = String(els.participantName?.value || "").trim();
+  const teamName = String(els.participantTeamName?.value || "").trim();
+  if (!name || !teamName) {
+    showParticipantAccessStatus("Vul zowel je naam als je teamnaam in.", "error");
     return;
   }
-  state.teams.forEach((team, index) => {
+  const existingIndex = state.teams.findIndex((team) => participantMatches(team, { name, teamName }));
+  if (existingIndex < 0 && !createIfMissing) {
+    showParticipantAccessStatus("Geen selectie gevonden met deze combinatie. Controleer de spelling of maak een nieuwe selectie.", "error");
+    return;
+  }
+  if (existingIndex >= 0 && createIfMissing) {
+    showParticipantAccessStatus("Deze combinatie bestaat al. Gebruik ?Selectie ophalen?.", "error");
+    return;
+  }
+  if (existingIndex < 0) {
+    state.teams.push({
+      name,
+      teamName,
+      color1: "#1d4ed8",
+      color2: "#f97316",
+      riders: "",
+      reserves: ""
+    });
+    persistState();
+  }
+  participantAccess = { name, teamName };
+  sessionStorage.setItem(`${STORAGE_PREFIX}-participant-access`, JSON.stringify(participantAccess));
+  render();
+  showParticipantAccessStatus(existingIndex >= 0 ? "Selectie opgehaald. Je kunt deze hieronder aanpassen." : "Nieuwe selectie aangemaakt. Stel hieronder je ploeg samen.", "success");
+}
+
+function renderParticipantAccess() {
+  const accessibleTeam = state.teams.find((team) => participantMatches(team));
+  if (participantAccess && !accessibleTeam) participantAccess = null;
+  if (els.participantName && participantAccess) els.participantName.value = participantAccess.name;
+  if (els.participantTeamName && participantAccess) els.participantTeamName.value = participantAccess.teamName;
+  els.closeSelection?.classList.toggle("is-hidden", !participantAccess);
+  document.getElementById("saveTeamsButton")?.classList.toggle("is-hidden", !participantAccess);
+  document.querySelectorAll(".game-change-toggle").forEach((element) => element.classList.toggle("is-hidden", !participantAccess));
+  if (!participantAccess) showParticipantAccessStatus("Haal je selectie op of maak een nieuwe selectie om te beginnen.", "pending");
+}
+
+function showParticipantAccessStatus(message, type = "") {
+  if (!els.participantAccessStatus) return;
+  els.participantAccessStatus.textContent = message;
+  els.participantAccessStatus.className = `save-status ${type ? `save-status-${type}` : ""}`.trim();
+}
+
+function renderTeams() {
+  els.teams.innerHTML = "";
+  if (!participantAccess) {
+    els.teams.innerHTML = "<p class=\"hint\">Vul hierboven je naam en teamnaam in om je eigen selectie te openen.</p>";
+    return;
+  }
+  const accessibleEntries = state.teams
+    .map((team, index) => ({ team, index }))
+    .filter(({ team }) => participantMatches(team));
+  if (!accessibleEntries.length) return;
+  accessibleEntries.forEach(({ team, index }) => {
     const active = padRiderSlots(parseRiderList(team.riders), STARTER_COUNT);
     const reserve = padRiderSlots(parseRiderList(team.reserves), RESERVE_COUNT);
     const initialBudget = calculateTeamBudgetFromLists(active, reserve);
@@ -931,11 +1016,11 @@ function renderTeams() {
         <div class="team-grid">
           <label>
             Deelnemer
-            <input data-team-name="${index}" value="${escapeAttr(team.name)}">
+            <input data-team-name="${index}" value="${escapeAttr(team.name)}" readonly>
           </label>
           <label>
             Teamnaam
-            <input data-team-title="${index}" value="${escapeAttr(team.teamName || "")}" placeholder="Naam van je ploeg">
+            <input data-team-title="${index}" value="${escapeAttr(team.teamName || "")}" readonly>
           </label>
           <label>
             Kleur 1
@@ -1430,6 +1515,7 @@ function normalizeHexColor(color) {
 
 function collectPendingTeamChanges() {
   return state.teams.map((team, index) => {
+    if (participantAccess && !participantMatches(team)) return null;
     const active = readSelectedRidersFromDom(index, "rider");
     const reserves = readSelectedRidersFromDom(index, "reserve");
     const nextRiders = serializeRiderArray(active);
@@ -1448,7 +1534,7 @@ function collectPendingTeamChanges() {
       nextReserves,
       changed
     };
-  }).filter((change) => change.changed);
+  }).filter((change) => change?.changed);
 }
 
 function registerManualTeamChanges(changes) {
@@ -3585,6 +3671,7 @@ function saveFromForm() {
   state.settings.exchangeWindows = readExchangeWindowsFromForm();
 
   state.teams.forEach((team, index) => {
+    if (participantAccess && !participantMatches(team)) return;
     team.name = document.querySelector(`[data-team-name="${index}"]`)?.value || team.name;
     team.teamName = document.querySelector(`[data-team-title="${index}"]`)?.value || team.teamName || "";
     team.color1 = document.querySelector(`[data-team-color1="${index}"]`)?.value || team.color1 || "#f6d32d";

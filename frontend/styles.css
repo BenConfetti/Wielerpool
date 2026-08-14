@@ -2337,3 +2337,60 @@ tbody tr:hover {
   .standing h3 { font-size: 15px; padding: 8px; }
   .standing th, .standing td { font-size: 12px; padding: 6px 4px; }
 }
+
+.participant-access {
+  background: #f8fafc;
+  border: 1px solid var(--strong-line);
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px;
+}
+
+.participant-access h2 { margin-bottom: 2px; }
+.participant-access .hint { margin: 0; }
+.participant-access-fields {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.rider-performance-team { overflow-x: auto; }
+.rider-performance-team table { table-layout: auto; min-width: 760px; }
+.rider-performance-team th:first-child,
+.rider-performance-team td:first-child {
+  min-width: 135px;
+  white-space: normal;
+  width: auto;
+}
+.rider-performance-team th:not(:first-child),
+.rider-performance-team td:not(:first-child) { white-space: nowrap; }
+
+@media (max-width: 700px) {
+  body { font-size: 12px; line-height: 1.25; }
+  .app-header h1 { font-size: 18px; }
+  .panel h2 { font-size: 15px; margin-bottom: 4px; }
+  .panel h3, .history-classification h3, .progress-team h3 { font-size: 12px; }
+  .intro-copy, .rules-summary, .prize-rules { font-size: 12px; line-height: 1.35; }
+  .layout { padding: 4px 5px 10px; }
+  .panel { padding: 4px 0; }
+  .participant-access { padding: 6px; }
+  .participant-access-fields { grid-template-columns: minmax(0, 1fr); }
+  button, input, select { min-height: 36px; }
+  button { padding: 6px 8px; }
+  input, select, textarea { padding: 5px 6px; }
+  label { font-size: 11px; }
+  details > summary { min-height: 32px; padding: 6px 2px; }
+  th, td { font-size: 10px; line-height: 1.15; padding: 2px 3px; }
+  .standing th, .standing td { font-size: 10px; padding: 2px 3px; }
+  .standing h3 { font-size: 12px; padding: 4px; }
+  .progress-stage-grid { grid-template-columns: minmax(0, 1fr); }
+  .progress-team { padding: 2px; }
+  .progress-classifications { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; }
+  .progress-classification h4 { font-size: 10px; padding: 1px 0; }
+  .history-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+  .history-classification { padding: 2px; }
+  .rider-performance-team table { min-width: 700px; }
+  .rider-performance-team th:first-child,
+  .rider-performance-team td:first-child { min-width: 120px; }
+}

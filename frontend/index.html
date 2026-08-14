@@ -40,11 +40,24 @@
 
       <section class="tab-panel" data-tab-panel="teamselectie">
         <section class="panel">
+          <section class="participant-access" aria-labelledby="participantAccessTitle">
+            <h2 id="participantAccessTitle">Mijn selectie</h2>
+            <p class="hint">Vul dezelfde naam en teamnaam in waarmee je de selectie hebt aangemaakt.</p>
+            <div class="participant-access-fields">
+              <label>Jouw naam<input id="participantNameInput" autocomplete="name" placeholder="Bijvoorbeeld Keje"></label>
+              <label>Teamnaam<input id="participantTeamNameInput" autocomplete="organization" placeholder="Naam van je ploeg"></label>
+            </div>
+            <div class="button-row">
+              <button id="retrieveSelectionButton" type="button">Selectie ophalen</button>
+              <button id="createSelectionButton" type="button" class="secondary">Nieuwe selectie maken</button>
+              <button id="closeSelectionButton" type="button" class="secondary is-hidden">Selectie sluiten</button>
+            </div>
+            <div id="participantAccessStatus" class="save-status" aria-live="polite"></div>
+          </section>
           <div class="section-heading">
-            <h2>Teams</h2>
+            <h2>Teamselectie</h2>
             <div class="button-row">
               <button id="saveTeamsButton" type="button">Opslaan</button>
-              <button id="addTeamButton" type="button">Team toevoegen</button>
             </div>
           </div>
           <label class="game-change-toggle">
@@ -123,13 +136,6 @@
       </section>
 
       <section class="tab-panel" data-tab-panel="tourdata">
-        <section class="panel">
-          <h2>Excel-import</h2>
-          <p class="hint">Zet nieuwe etappebestanden in <code>wielerpool/input</code>. De test-app gebruikt nu de geconverteerde bestanden voor etappe 2 t/m 13.</p>
-          <input id="excelUploadInput" type="file" accept=".xlsx,.xls">
-          <p id="excelUploadStatus" class="hint">Upload is alvast voorbereid; verwerking van Excel loopt nu nog via de lokale converter.</p>
-        </section>
-
         <section class="panel">
           <h2>Feitelijke uitslagen</h2>
           <div id="tourResultsData" class="data-table">Laden...</div>
