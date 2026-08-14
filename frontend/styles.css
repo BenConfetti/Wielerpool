@@ -2394,3 +2394,18 @@ tbody tr:hover {
   .rider-performance-team th:first-child,
   .rider-performance-team td:first-child { min-width: 120px; }
 }
+
+.intro-admin-editor {
+  background: #ffffff;
+  border: 1px solid var(--strong-line);
+  line-height: 1.45;
+  max-height: 38rem;
+  min-height: 20rem;
+  overflow: auto;
+  padding: 10px;
+}
+
+.intro-admin-editor:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}

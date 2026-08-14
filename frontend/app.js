@@ -120,6 +120,7 @@ const els = {
   adminPassword: document.getElementById("adminPasswordInput"),
   adminLoginStatus: document.getElementById("adminLoginStatus"),
   adminSaveStatus: document.getElementById("adminSaveStatus"),
+  introEditor: document.getElementById("introEditor"),
   prizeWeightEditor: document.getElementById("prizeWeightEditor"),
   adminOverviewData: document.getElementById("adminOverviewData"),
   adminLogData: document.getElementById("adminLogData")
@@ -336,6 +337,11 @@ document.querySelector('[data-tab-panel="admin"]')?.addEventListener("input", (e
   showAdminSaveStatus("Adminwijzigingen nog niet opgeslagen.", "pending");
 });
 
+els.introEditor?.addEventListener("input", () => {
+  els.introEditor.dataset.edited = "1";
+  showAdminSaveStatus("Adminwijzigingen nog niet opgeslagen.", "pending");
+});
+
 document.getElementById("saveAdminButton")?.addEventListener("click", () => {
   saveAdminChanges();
 });
@@ -479,6 +485,10 @@ function applyRoundConfig() {
 function renderRoundIntro() {
   const container = document.getElementById("roundIntroContent");
   if (!container) return;
+  if (state.settings.introHtml) {
+    container.innerHTML = sanitizeIntroHtml(state.settings.introHtml);
+    return;
+  }
   if (ROUND_CONFIG.intro?.template !== "vuelta-pool") {
     container.innerHTML = `
       <p class="hint">Testversie voor de ${escapeHtml(ROUND_CONFIG.name || "wieler")}–pool. Kies teams, importeer uitslagen en controleer per klassement hoe scores en geldbedragen zijn opgebouwd.</p>
@@ -682,6 +692,11 @@ function normalizePrizePotSplit(prizePotSplit = {}) {
 function renderAdminSettings() {
   state.settings.prizePotSplit = normalizePrizePotSplit(state.settings.prizePotSplit);
   state.settings.prizeWeights = normalizePrizeWeights(state.settings.prizeWeights);
+  if (els.introEditor && document.activeElement !== els.introEditor) {
+    els.introEditor.innerHTML = sanitizeIntroHtml(state.settings.introHtml || document.getElementById("roundIntroContent")?.innerHTML || "");
+    els.introEditor.dataset.adminPreviousValue = els.introEditor.innerHTML;
+    delete els.introEditor.dataset.edited;
+  }
   renderPrizeWeightEditor();
   renderBcPriceEditor();
   renderExchangeWindowEditor();
@@ -4429,6 +4444,23 @@ function formatCurrency(value) {
 }
 
 function escapeHtml(value) {
+function sanitizeIntroHtml(value) {
+  const documentFragment = new DOMParser().parseFromString(`<div>${String(value || "")}</div>`, "text/html");
+  const root = documentFragment.body.firstElementChild;
+  const allowedTags = new Set(["SECTION", "H2", "H3", "H4", "P", "UL", "OL", "LI", "STRONG", "EM", "BR"]);
+  root.querySelectorAll("script, style, iframe, object, embed").forEach((element) => element.remove());
+  [...root.querySelectorAll("*")].forEach((element) => {
+    if (!allowedTags.has(element.tagName)) {
+      element.replaceWith(...element.childNodes);
+      return;
+    }
+    const allowedClass = element.classList.contains("intro-copy") ? "intro-copy" : element.classList.contains("rules-summary") ? "rules-summary" : "";
+    [...element.attributes].forEach((attribute) => element.removeAttribute(attribute.name));
+    if (allowedClass) element.className = allowedClass;
+  });
+  return root.innerHTML;
+}
+
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -4599,6 +4631,11 @@ function saveAdminChanges() {
     return;
   }
   const changes = collectAdminChanges();
+  if (els.introEditor?.dataset.edited === "1") {
+    const before = state.settings.introHtml || "Standaardtekst";
+    state.settings.introHtml = sanitizeIntroHtml(els.introEditor.innerHTML);
+    changes.push({ category: "Intro", action: "Introtekst aangepast", before, after: "Aangepaste tekst" });
+  }
   saveFromForm();
   persistState();
   applyBcPriceOverrides();
@@ -4607,6 +4644,7 @@ function saveAdminChanges() {
   });
   renderTeams();
   tourDataRendered = false;
+  renderRoundIntro();
   renderTourData();
   renderResults();
   renderPrizePotData();
