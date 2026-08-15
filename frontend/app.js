@@ -75,6 +75,7 @@ let feedbackItems = loadFeedback();
 let adminLogItems = loadAdminLog();
 let adminUnlocked = sessionStorage.getItem(`${STORAGE_PREFIX}-admin-unlocked`) === "1";
 let participantAccess = loadParticipantAccess();
+let storageSyncError = "";
 
 const els = {
   stake: document.getElementById("stakeInput"),
@@ -129,24 +130,6 @@ const els = {
 
 document.querySelectorAll("[data-tab-target]").forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
-});
-
-document.getElementById("loadExampleButton").addEventListener("click", async () => {
-  state = structuredClone(exampleState);
-  await loadOfficialStages({ loadTeams: true });
-  render();
-});
-
-document.getElementById("resetButton").addEventListener("click", async () => {
-  state = {
-    settings: structuredClone(exampleState.settings),
-    teams: [],
-    stages: [],
-    manualSwaps: [],
-    dataVersion: DATA_VERSION
-  };
-  await loadOfficialStages();
-  render();
 });
 
 document.getElementById("retrieveSelectionButton")?.addEventListener("click", () => {
@@ -1003,7 +986,7 @@ function renderParticipantAccess() {
   els.closeSelection?.classList.toggle("is-hidden", !participantAccess);
   document.getElementById("saveTeamsButton")?.classList.toggle("is-hidden", !participantAccess);
   document.querySelectorAll(".game-change-toggle").forEach((element) => element.classList.toggle("is-hidden", !participantAccess));
-  if (!participantAccess) showParticipantAccessStatus("Haal je selectie op of maak een nieuwe selectie om te beginnen.", "pending");
+  if (!participantAccess) showParticipantAccessStatus(storageSyncError || "Haal je selectie op of maak een nieuwe selectie om te beginnen.", storageSyncError ? "error" : "pending");
 }
 
 function showParticipantAccessStatus(message, type = "") {
@@ -4814,8 +4797,10 @@ async function syncTeamsFromApi() {
       if (missingTeams.length) remoteTeams = await POOL_STORAGE.api.listTeams();
     }
     state.teams = remoteTeams;
+    storageSyncError = "";
     persistState();
   } catch (error) {
+    storageSyncError = "Online teams konden niet worden geladen. Ververs de pagina zodra de verbinding hersteld is.";
     console.warn("Online teams konden niet worden geladen; lokale opslag blijft actief.", error);
   }
 }
