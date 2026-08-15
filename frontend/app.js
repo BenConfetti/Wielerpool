@@ -1900,10 +1900,21 @@ function renderStageStripItem(stage, status) {
   return `
     <article class="stage-strip-item stage-strip-${stage.type} ${status.current ? "stage-strip-current" : ""} ${status.loaded ? "stage-strip-loaded" : "stage-strip-pending"}" title="${escapeAttr(title)}">
       <span>${stage.number}</span>
-      <i class="stage-strip-profile" aria-hidden="true"></i>
+      ${renderStageProfileIcon(stage.type)}
       <small>${escapeHtml(stage.label)}</small>
     </article>
   `;
+}
+
+function renderStageProfileIcon(type) {
+  const paths = {
+    sprint: '<path d="M1 13 L9 12 L17 13 L25 11 L33 12"></path>',
+    flat: '<path d="M1 13 L9 12 L17 13 L25 11 L33 12"></path>',
+    hilly: '<path d="M1 14 L8 6 L14 13 L21 5 L27 12 L34 8"></path>',
+    mountain: '<path d="M1 15 L8 11 L15 3 L20 11 L27 1 L34 12"></path>',
+    "time-trial": '<circle cx="17" cy="9" r="7"></circle><path d="M17 2 V0 M14 0 H20 M17 9 L21 5"></path>'
+  };
+  return `<svg class="stage-strip-profile" viewBox="0 0 35 17" aria-hidden="true" focusable="false">${paths[type] || paths.flat}</svg>`;
 }
 
 function renderLeaderAnchors(standings, money) {

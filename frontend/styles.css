@@ -546,64 +546,35 @@ textarea {
 .stage-strip-profile {
   color: #64748b;
   display: block;
-  height: 9px;
-  margin: 2px auto;
-  position: relative;
-  width: 30px;
-}
-
-.stage-strip-profile::before {
-  background: currentColor;
-  clip-path: polygon(0 100%, 0 72%, 28% 64%, 55% 72%, 78% 58%, 100% 66%, 100% 100%);
-  content: "";
-  inset: 0;
-  position: absolute;
+  fill: none;
+  height: 17px;
+  margin: 1px auto;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+  width: 35px;
 }
 
 .stage-strip-sprint .stage-strip-profile {
   color: var(--tour-green);
 }
 
-.stage-strip-sprint .stage-strip-profile::before {
-  clip-path: polygon(0 100%, 0 72%, 35% 69%, 68% 72%, 100% 65%, 100% 100%);
-}
-
 .stage-strip-hilly .stage-strip-profile {
-  color: #d2a900;
-}
-
-.stage-strip-hilly .stage-strip-profile::before {
-  clip-path: polygon(0 100%, 0 76%, 20% 38%, 38% 70%, 58% 32%, 76% 68%, 100% 48%, 100% 100%);
+  color: #b88a00;
 }
 
 .stage-strip-mountain .stage-strip-profile {
   color: var(--tour-red);
 }
 
-.stage-strip-mountain .stage-strip-profile::before {
-  clip-path: polygon(0 100%, 0 84%, 18% 62%, 38% 24%, 53% 60%, 76% 4%, 100% 66%, 100% 100%);
-}
-
 .stage-strip-time-trial .stage-strip-profile {
-  border: 2px solid #6b7280;
-  border-radius: 50%;
-  color: #6b7280;
-  height: 10px;
-  width: 10px;
-}
-
-.stage-strip-time-trial .stage-strip-profile::before {
-  background: currentColor;
-  clip-path: none;
-  height: 4px;
-  inset: 1px auto auto 3px;
-  transform: rotate(35deg);
-  transform-origin: bottom;
-  width: 1px;
+  color: #4b5563;
 }
 
 .stage-strip-flat .stage-strip-profile {
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .stage-strip-sprint {
