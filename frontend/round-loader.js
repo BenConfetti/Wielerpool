@@ -1,10 +1,10 @@
-const APP_ASSET_VERSION = "20260815-1";
+const APP_ASSET_VERSION = "20260815-2";
 
 (async function loadRound() {
   const params = new URLSearchParams(window.location.search);
   const roundId = params.get("round") || "tour-2026";
   try {
-    const response = await fetch(`../rounds/${encodeURIComponent(roundId)}.json`);
+    const response = await fetch(`../rounds/${encodeURIComponent(roundId)}.json`, { cache: "no-store" });
     if (!response.ok) throw new Error(`Rondeconfig niet gevonden (${response.status})`);
     window.ROUND_CONFIG = await response.json();
     window.ROUND_ID = window.ROUND_CONFIG.id;
