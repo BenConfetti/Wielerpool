@@ -2010,7 +2010,10 @@ let tourDataRendered = false;
 
 async function renderTourData() {
   if (tourDataRendered) {
-    await renderWithdrawnRiderData();
+    await Promise.all([
+      renderStageDataFiles(),
+      renderWithdrawnRiderData()
+    ]);
     return;
   }
   tourDataRendered = true;
@@ -2025,6 +2028,36 @@ async function renderStageDataFiles() {
   if (!els.tourResultsData) return;
   els.tourResultsData.innerHTML = "";
 
+  const loadedStageNumbers = new Set(state.stages
+    .filter((stage) => String(stage.results || "").trim())
+    .map((stage) => getStageNumber(stage.name))
+    .filter(Number.isFinite));
+  const programme = document.createElement("section");
+  programme.className = "stage-programme";
+  programme.innerHTML = `
+    <div class="stage-programme-heading">
+      <div>
+        <h3>Etappeprogramma</h3>
+        <p class="hint">Profiel en verwerkingsstatus per etappe.</p>
+      </div>
+      <div class="stage-status-legend" aria-label="Legenda verwerkingsstatus">
+        <span class="stage-status-badge stage-status-done">Verwerkt</span>
+        <span class="stage-status-badge stage-status-open">Nog niet verwerkt</span>
+      </div>
+    </div>
+    <div class="stage-programme-grid">
+      ${TOUR_STAGES.map((stage) => renderStageProgrammeCard(stage, loadedStageNumbers.has(stage.number))).join("")}
+    </div>
+  `;
+  els.tourResultsData.appendChild(programme);
+
+  if (!OFFICIAL_STAGE_FILES.length) {
+    const empty = document.createElement("p");
+    empty.className = "hint stage-results-empty";
+    empty.textContent = "Er zijn nog geen feitelijke etappe-uitslagen verwerkt.";
+    els.tourResultsData.appendChild(empty);
+  }
+
   for (const stage of OFFICIAL_STAGE_FILES) {
     const section = document.createElement("section");
     section.className = "data-section";
@@ -2032,6 +2065,28 @@ async function renderStageDataFiles() {
     els.tourResultsData.appendChild(section);
     await renderCsvFile(stage.url, section.querySelector("div"), `Geen data voor ${stage.name}.`, { addPosition: true, formatRiderNames: true });
   }
+}
+
+function renderStageProgrammeCard(stage, loaded) {
+  const statusLabel = loaded ? "Verwerkt" : "Nog niet verwerkt";
+  const route = stage.route || `Etappe ${stage.number}`;
+  const distance = Number.isFinite(Number(stage.km)) ? `${formatNumber(Number(stage.km))} km` : "";
+  return `
+    <article class="stage-programme-card ${loaded ? "is-processed" : "is-pending"}">
+      <div class="stage-profile stage-profile-${escapeAttr(stage.type || "flat")}" aria-label="Profiel: ${escapeAttr(stage.label || stage.type || "onbekend")}">
+        <span></span>
+      </div>
+      <div class="stage-programme-meta">
+        <strong>Etappe ${formatNumber(stage.number)}</strong>
+        <span>${escapeHtml(stage.date || "")} ? ${escapeHtml(stage.label || "")}</span>
+      </div>
+      <div class="stage-programme-route">
+        <strong>${escapeHtml(route)}</strong>
+        <span>${escapeHtml(distance)}</span>
+      </div>
+      <span class="stage-status-badge ${loaded ? "stage-status-done" : "stage-status-open"}">${statusLabel}</span>
+    </article>
+  `;
 }
 
 async function renderCombinedRiderData() {
