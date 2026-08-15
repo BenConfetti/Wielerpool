@@ -50,6 +50,7 @@ const OFFICIAL_STAGE_FILES = (ROUND_FILES.stages || []).map((stage) => ({
   url: stage.results
 }));
 const TOUR_STAGES = ROUND_CONFIG.stageSchedule || [];
+const PRICE_VERSION = String(ROUND_CONFIG.priceVersion || "");
 
 const exampleState = {
   settings: {
@@ -631,6 +632,10 @@ function activateTab(tabName) {
 function migrateState(savedState) {
   const nextState = savedState ? { ...structuredClone(exampleState), ...savedState } : structuredClone(exampleState);
   nextState.settings = normalizeSettings(nextState.settings);
+  if (PRICE_VERSION && nextState.priceVersion !== PRICE_VERSION) {
+    nextState.settings.bcPrices = {};
+    nextState.priceVersion = PRICE_VERSION;
+  }
   nextState.manualSwaps = Array.isArray(nextState.manualSwaps) ? nextState.manualSwaps : [];
   applyTeamColorPalette(nextState);
   if (nextState.dataVersion !== DATA_VERSION) {
