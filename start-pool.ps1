@@ -19,7 +19,11 @@ try {
   while ($listener.IsListening) {
     $context = $listener.GetContext()
     $requestPath = [Uri]::UnescapeDataString($context.Request.Url.AbsolutePath.TrimStart("/"))
-    if (-not $requestPath) { $requestPath = "frontend/index.html" }
+    if (-not $requestPath) {
+      $requestPath = "frontend/index.html"
+    } elseif ($requestPath.EndsWith("/")) {
+      $requestPath = "$($requestPath)index.html"
+    }
     $filePath = [IO.Path]::GetFullPath((Join-Path $root $requestPath))
 
     if (-not $filePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
