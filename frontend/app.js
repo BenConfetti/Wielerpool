@@ -6,7 +6,7 @@ const POOL_STORAGE = window.createPoolStorage({
   roundId: ROUND_CONFIG.id,
   prefix: STORAGE_PREFIX,
   roundConfig: ROUND_CONFIG,
-  mode: new URLSearchParams(window.location.search).get("storage") || ROUND_CONFIG.storageMode || "local",
+  mode: new URLSearchParams(window.location.search).get("storage") || ROUND_CONFIG.storageMode || (["127.0.0.1", "localhost"].includes(window.location.hostname) ? "local" : "api"),
   apiBase: ROUND_CONFIG.apiBase || "http://127.0.0.1:3000/api/v1"
 });
 const CLASSIFICATIONS = [
@@ -175,7 +175,7 @@ document.getElementById("addTeamButton")?.addEventListener("click", () => {
   render();
 });
 
-document.getElementById("saveTeamsButton")?.addEventListener("click", () => {
+document.getElementById("saveTeamsButton")?.addEventListener("click", async () => {
   updateAllTeamColorStatus();
   updateAllTeamRiderAvailability();
   const colorErrors = validateAllTeamColors();
@@ -197,6 +197,12 @@ document.getElementById("saveTeamsButton")?.addEventListener("click", () => {
     registerManualTeamChanges(pendingTeamChanges);
   } else {
     applyRetroactiveTeamChanges(pendingTeamChanges);
+  }
+  try {
+    await saveAccessibleTeamToApi();
+  } catch (error) {
+    showTeamSaveStatus("Niet opgeslagen in de online database. Probeer het over een moment opnieuw.", "error");
+    return;
   }
   persistState();
   render();
@@ -4781,6 +4787,39 @@ function exportAdminLogCsv() {
   downloadTextFile(`wielerpool-adminlog-${new Date().toISOString().slice(0, 10)}.csv`, `\ufeff${csv}`, "text/csv;charset=utf-8");
 }
 
+async function saveAccessibleTeamToApi() {
+  if (POOL_STORAGE.mode !== "api") return;
+  const team = state.teams.find((item) => participantMatches(item));
+  if (!team) throw new Error("Geen actieve selectie.");
+  const saved = await POOL_STORAGE.api.saveTeamSelection(team);
+  Object.assign(team, saved);
+  persistState();
+}
+
+async function syncTeamsFromApi() {
+  if (POOL_STORAGE.mode !== "api") return;
+  const localTeams = Array.isArray(state.teams) ? structuredClone(state.teams) : [];
+  try {
+    let remoteTeams = await POOL_STORAGE.api.listTeams();
+    const migrationKey = STORAGE_PREFIX + "-api-team-migration-v1";
+    if (ROUND_CONFIG.id === "vuelta-2026" && localStorage.getItem(migrationKey) !== "1") {
+      const missingTeams = localTeams.filter((localTeam) =>
+        localTeam.name && localTeam.teamName
+        && !remoteTeams.some((remoteTeam) => participantMatches(remoteTeam, { name: localTeam.name, teamName: localTeam.teamName }))
+      );
+      for (const team of missingTeams) {
+        await POOL_STORAGE.api.saveTeamSelection(team);
+      }
+      localStorage.setItem(migrationKey, "1");
+      if (missingTeams.length) remoteTeams = await POOL_STORAGE.api.listTeams();
+    }
+    state.teams = remoteTeams;
+    persistState();
+  } catch (error) {
+    console.warn("Online teams konden niet worden geladen; lokale opslag blijft actief.", error);
+  }
+}
+
 function persistState() {
   POOL_STORAGE.saveState(state);
 }
@@ -4819,5 +4858,9 @@ function downloadTextFile(filename, content, type) {
   URL.revokeObjectURL(url);
 }
 
-loadOfficialStages().finally(() => render());
+(async function startApp() {
+  await loadOfficialStages();
+  await syncTeamsFromApi();
+  render();
+})();
 

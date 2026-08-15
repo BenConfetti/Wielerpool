@@ -6,6 +6,7 @@
   "status": "test",
   "currency": "EUR",
   "storageKeyPrefix": "wielerpool-tour-2026",
+  "apiBase": "https://wielerpool-api.onrender.com/api/v1",
   "theme": {
     "accent": "#0072ce",
     "accentDark": "#005ea8",

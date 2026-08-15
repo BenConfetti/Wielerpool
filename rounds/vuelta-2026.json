@@ -6,6 +6,7 @@
   "status": "setup",
   "currency": "EUR",
   "storageKeyPrefix": "wielerpool-vuelta-2026",
+  "apiBase": "https://wielerpool-api.onrender.com/api/v1",
   "theme": {
     "accent": "#d71920",
     "accentDark": "#a30f15",

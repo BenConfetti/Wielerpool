@@ -56,6 +56,8 @@
         getRound: () => request(`/rounds/${encodeURIComponent(roundId)}`),
         getParticipants: () => request(`/rounds/${encodeURIComponent(roundId)}/participants`),
         getRiders: () => request(`/rounds/${encodeURIComponent(roundId)}/riders`)
+        ,listTeams: () => request("/rounds/" + encodeURIComponent(roundId) + "/teams")
+        ,saveTeamSelection: (team) => send("/rounds/" + encodeURIComponent(roundId) + "/teams", team)
       }),
       remove: (suffix) => localStorage.removeItem(key(suffix))
     });
@@ -63,6 +65,17 @@
     async function request(path) {
       const response = await fetch(`${apiBase}${path}`, { credentials: "include" });
       if (!response.ok) throw new Error(`API-fout ${response.status}`);
+      return response.json();
+    }
+
+    async function send(path, body) {
+      const response = await fetch(apiBase + path, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) throw new Error("API-fout " + response.status);
       return response.json();
     }
   }
