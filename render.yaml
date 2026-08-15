@@ -5,7 +5,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm run migrate && pnpm run seed && pnpm start
+    startCommand: pnpm run migrate && pnpm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
