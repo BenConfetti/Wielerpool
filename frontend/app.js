@@ -1896,10 +1896,11 @@ function renderStageBar(stages) {
 }
 
 function renderStageStripItem(stage, status) {
-  const title = `Etappe ${stage.number}: ${stage.label} - ${stage.route} - ${stage.km} km${status.loaded ? " - geladen" : ""}`;
+  const title = `Etappe ${stage.number}: ${stage.label} - ${stage.route} - ${stage.km} km`;
   return `
     <article class="stage-strip-item stage-strip-${stage.type} ${status.current ? "stage-strip-current" : ""} ${status.loaded ? "stage-strip-loaded" : "stage-strip-pending"}" title="${escapeAttr(title)}">
       <span>${stage.number}</span>
+      <i class="stage-strip-profile" aria-hidden="true"></i>
       <small>${escapeHtml(stage.label)}</small>
     </article>
   `;
