@@ -2443,3 +2443,28 @@ tbody tr:hover {
   border-color: var(--accent);
   outline: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
+
+/* Houd de tekst rondom het prijzenschema compact; de tabellen behouden hun eigen formaat. */
+.prize-pot-panel > h2 {
+  font-size: 13px;
+}
+
+.prize-pot-panel .prize-pot-summary article,
+.prize-pot-panel > .prize-pot-data > .hint,
+.prize-pot-panel .prize-rules {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.prize-pot-panel .prize-pot-summary strong {
+  font-size: 10px;
+}
+
+.prize-pot-panel .prize-pot-overview h3,
+.prize-pot-panel .prize-rules h3 {
+  font-size: 12px;
+}
+
+.prize-pot-panel .money-breakdown > summary {
+  font-size: 11px;
+}
