@@ -842,8 +842,8 @@ async function loadOfficialStages() {
 async function loadTourRiderList() {
   try {
     const [startResponse, bcResponse] = await Promise.all([
-      fetch(ROUND_FILES.startlist || ""),
-      fetch(ROUND_FILES.prices || "")
+      fetch(ROUND_FILES.startlist || "", { cache: "no-store" }),
+      fetch(ROUND_FILES.prices || "", { cache: "no-store" })
     ]);
     const startRows = startResponse.ok ? parseDelimitedRows(await startResponse.text()) : [];
     const bcRows = bcResponse.ok ? parseDelimitedRows(await bcResponse.text()) : [];
