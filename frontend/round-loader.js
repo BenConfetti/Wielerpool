@@ -1,3 +1,5 @@
+const APP_ASSET_VERSION = "20260815-1";
+
 (async function loadRound() {
   const params = new URLSearchParams(window.location.search);
   const roundId = params.get("round") || "tour-2026";
@@ -16,7 +18,7 @@
 function loadRoundScript(src) {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = src;
+    script.src = `${src}?v=${encodeURIComponent(APP_ASSET_VERSION)}`;
     script.onload = resolve;
     script.onerror = () => reject(new Error(`Script kon niet worden geladen: ${src}`));
     document.body.appendChild(script);
