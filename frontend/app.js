@@ -133,7 +133,7 @@ document.querySelectorAll("[data-tab-target]").forEach((button) => {
 
 document.getElementById("loadExampleButton").addEventListener("click", async () => {
   state = structuredClone(exampleState);
-  await loadOfficialStages();
+  await loadOfficialStages({ loadTeams: true });
   render();
 });
 
@@ -813,7 +813,7 @@ function sumFinalPrizeWeights(weights) {
   return sumClassificationWeights(weights) + Number(weights?.general2 || 0) + Number(weights?.general3 || 0);
 }
 
-async function loadOfficialStages() {
+async function loadOfficialStages(options = {}) {
   const stages = [];
   for (const stage of OFFICIAL_STAGE_FILES) {
     const response = await fetch(stage.url);
@@ -829,15 +829,17 @@ async function loadOfficialStages() {
     state.stages = stages;
     state.dataVersion = DATA_VERSION;
   }
-  try {
-    const response = await fetch(ROUND_FILES.teams || "");
-    if (response.ok) {
-      const payload = await response.json();
-      state.settings.budget = Number(payload.budget || 20000);
-      state.teams = payload.teams || [];
+  if (options.loadTeams) {
+    try {
+      const response = await fetch(ROUND_FILES.teams || "", { cache: "no-store" });
+      if (response.ok) {
+        const payload = await response.json();
+        state.settings.budget = Number(payload.budget || ROUND_SETTINGS.budget || 20000);
+        state.teams = payload.teams || [];
+      }
+    } catch {
+      state.settings.budget = Number(ROUND_SETTINGS.budget || 20000);
     }
-  } catch {
-    state.settings.budget = 20000;
   }
   tourRiders = await loadTourRiderList();
   withdrawalRecords = await loadWithdrawalRecords();
