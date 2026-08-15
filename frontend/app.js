@@ -1884,6 +1884,7 @@ function renderStageBar(stages) {
     <div class="stage-strip-title">
       <strong>Etappes</strong>
       <span>${escapeHtml(ROUND_CONFIG.name || "Wielerpool")} &middot; ${formatNumber(Number(ROUND_SETTINGS.stageCount || 0))} etappes</span>
+      <span class="stage-strip-legend"><b>OK</b> verwerkt &middot; <i>OPEN</i> nog niet verwerkt</span>
     </div>
     <div class="stage-strip-track">
       ${TOUR_STAGES.map((stage) => renderStageStripItem(stage, {
@@ -1896,11 +1897,13 @@ function renderStageBar(stages) {
 }
 
 function renderStageStripItem(stage, status) {
-  const title = `Etappe ${stage.number}: ${stage.label} - ${stage.route} - ${stage.km} km${status.loaded ? " - geladen" : ""}`;
+  const processingStatus = status.loaded ? "Verwerkt" : "Nog niet verwerkt";
+  const title = `Etappe ${stage.number}: ${stage.label} - ${stage.route} - ${stage.km} km - ${processingStatus}`;
   return `
-    <article class="stage-strip-item stage-strip-${stage.type} ${status.current ? "stage-strip-current" : ""} ${status.loaded ? "stage-strip-loaded" : "stage-strip-pending"}" title="${escapeAttr(title)}">
+    <article class="stage-strip-item stage-strip-${stage.type} ${status.current ? "stage-strip-current" : ""} ${status.loaded ? "stage-strip-loaded" : "stage-strip-pending"}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">
       <span>${stage.number}</span>
       <small>${escapeHtml(stage.label)}</small>
+      <em class="stage-strip-status" aria-hidden="true">${status.loaded ? "OK" : "OPEN"}</em>
     </article>
   `;
 }

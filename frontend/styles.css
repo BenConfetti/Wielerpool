@@ -506,6 +506,28 @@ textarea {
   font-size: 11px;
 }
 
+.stage-strip-title .stage-strip-legend {
+  font-size: 9px;
+  margin-top: 3px;
+}
+
+.stage-strip-legend b,
+.stage-strip-legend i {
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 8px;
+  font-style: normal;
+  padding: 0 2px;
+}
+
+.stage-strip-legend b {
+  color: #166534;
+}
+
+.stage-strip-legend i {
+  color: #64748b;
+}
+
 .stage-strip-track {
   display: grid;
   gap: 4px;
@@ -519,14 +541,15 @@ textarea {
   background: #ffffff;
   border: 1px solid var(--line);
   border-top: 4px solid var(--line);
-  min-height: 42px;
+  min-height: 52px;
   min-width: 0;
   padding: 3px 4px;
   text-align: center;
 }
 
 .stage-strip-item span,
-.stage-strip-item small {
+.stage-strip-item small,
+.stage-strip-item em {
   display: block;
   line-height: 1.1;
 }
@@ -541,6 +564,16 @@ textarea {
   font-size: 10px;
   margin-top: 2px;
   text-transform: uppercase;
+}
+
+.stage-strip-status {
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 900;
+  margin-top: 3px;
+  padding: 1px 2px;
 }
 
 .stage-strip-sprint {
@@ -568,11 +601,21 @@ textarea {
 }
 
 .stage-strip-pending {
-  opacity: .55;
+  opacity: .72;
+}
+
+.stage-strip-pending .stage-strip-status {
+  color: #64748b;
 }
 
 .stage-strip-loaded {
+  border-bottom-color: #22c55e;
   opacity: 1;
+}
+
+.stage-strip-loaded .stage-strip-status {
+  background: #dcfce7;
+  color: #166534;
 }
 
 .stage-strip-current {
