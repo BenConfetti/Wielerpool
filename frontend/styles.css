@@ -100,6 +100,9 @@ button.secondary {
   gap: 0;
   overflow-x: auto;
   padding: 0 10px;
+  margin-inline: auto;
+  max-width: 1180px;
+  width: 100%;
 }
 
 .tab-button {
@@ -123,12 +126,17 @@ button.secondary {
 .layout {
   display: grid;
   gap: 6px;
+  margin-inline: auto;
+  max-width: 1180px;
+  min-width: 0;
   padding: 6px 10px 12px;
+  width: 100%;
 }
 
 .tab-panel {
   display: none;
   gap: 6px;
+  min-width: 0;
 }
 
 .tab-panel.active {
@@ -141,6 +149,39 @@ button.secondary {
   border-top: 1px solid var(--strong-line);
   border-radius: 0;
   padding: 5px 0;
+  min-width: 0;
+}
+
+[data-tab-panel="admin"] .admin-content {
+  font-size: 10px;
+  line-height: 1.18;
+  min-width: 0;
+}
+
+[data-tab-panel="admin"] .admin-content .panel h2 {
+  font-size: 13px;
+}
+
+[data-tab-panel="admin"] .admin-content h3,
+[data-tab-panel="admin"] .admin-content .admin-subheading {
+  font-size: 11px;
+}
+
+[data-tab-panel="admin"] .admin-content table,
+[data-tab-panel="admin"] .admin-content th,
+[data-tab-panel="admin"] .admin-content td {
+  font-size: 12px;
+}
+
+[data-tab-panel="admin"] .admin-content .prize-weight-editor,
+[data-tab-panel="admin"] .admin-content .prize-pot-overview,
+[data-tab-panel="admin"] .admin-content .exchange-window-editor,
+[data-tab-panel="admin"] .admin-content .feedback-list,
+[data-tab-panel="admin"] .admin-content .data-table,
+[data-tab-panel="admin"] .admin-content .bc-price-editor {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .panel h2 {
