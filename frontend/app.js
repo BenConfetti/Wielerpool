@@ -1477,8 +1477,8 @@ function validateAllTeamRiders() {
 }
 
 function validateTeamRidersFromLists(active, reserves) {
-  if (active.length > STARTER_COUNT) {
-    return { valid: false, message: `Kies maximaal ${STARTER_COUNT} starters.` };
+  if (active.length !== STARTER_COUNT) {
+    return { valid: false, message: `Kies precies ${STARTER_COUNT} starters (nu ${active.length}).` };
   }
   if (reserves.length > RESERVE_COUNT) {
     return { valid: false, message: `Kies maximaal ${RESERVE_COUNT} reserves.` };
