@@ -2208,9 +2208,6 @@ function renderTeamVisuals() {
         <div class="intro-peloton" aria-label="Peloton startteam">
           ${visualRiders.map((entry, index) => renderIntroPelotonRider(team, entry.rider, index, entry.classificationId)).join("")}
         </div>
-        <ol class="intro-squad-list" aria-label="Startteam namen">
-          ${active.map((rider, index) => renderIntroSquadRider(team, rider, index, jerseys[index] || "")).join("")}
-        </ol>
       </article>
     `;
   }).join("");
