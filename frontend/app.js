@@ -122,6 +122,7 @@ const els = {
   adminPassword: document.getElementById("adminPasswordInput"),
   adminLoginStatus: document.getElementById("adminLoginStatus"),
   adminSaveStatus: document.getElementById("adminSaveStatus"),
+  appLoadingStatus: document.getElementById("appLoadingStatus"),
   introEditor: document.getElementById("introEditor"),
   prizeWeightEditor: document.getElementById("prizeWeightEditor"),
   adminOverviewData: document.getElementById("adminOverviewData"),
@@ -4779,6 +4780,7 @@ async function saveAccessibleTeamToApi() {
 async function syncTeamsFromApi() {
   if (POOL_STORAGE.mode !== "api") return;
   const localTeams = Array.isArray(state.teams) ? structuredClone(state.teams) : [];
+  showAppLoadingStatus("Teams worden geladen…");
   try {
     let remoteTeams = await POOL_STORAGE.api.listTeams();
     const migrationKey = STORAGE_PREFIX + "-api-team-migration-v1";
@@ -4799,7 +4801,21 @@ async function syncTeamsFromApi() {
   } catch (error) {
     storageSyncError = "Online teams konden niet worden geladen. Ververs de pagina zodra de verbinding hersteld is.";
     console.warn("Online teams konden niet worden geladen; lokale opslag blijft actief.", error);
+  } finally {
+    hideAppLoadingStatus();
   }
+}
+
+function showAppLoadingStatus(message) {
+  if (!els.appLoadingStatus) return;
+  els.appLoadingStatus.textContent = message;
+  els.appLoadingStatus.classList.remove("is-hidden");
+}
+
+function hideAppLoadingStatus() {
+  if (!els.appLoadingStatus) return;
+  els.appLoadingStatus.classList.add("is-hidden");
+  els.appLoadingStatus.textContent = "";
 }
 
 function persistState() {
@@ -4841,6 +4857,8 @@ function downloadTextFile(filename, content, type) {
 }
 
 (async function startApp() {
+  applyRoundConfig();
+  renderRoundIntro();
   await loadOfficialStages();
   await syncTeamsFromApi();
   render();

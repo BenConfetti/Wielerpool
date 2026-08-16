@@ -2468,3 +2468,10 @@ tbody tr:hover {
 .prize-pot-panel .money-breakdown > summary {
   font-size: 11px;
 }
+.app-loading-status {
+  margin: 12px auto 0;
+  max-width: 1180px;
+  padding: 10px 16px;
+  color: var(--text-muted, #475569);
+  font-weight: 600;
+}
