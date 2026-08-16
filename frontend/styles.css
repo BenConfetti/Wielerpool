@@ -247,6 +247,14 @@ button.secondary {
   font-weight: 700;
 }
 
+.admin-participants h3 {
+  margin-bottom: 6px;
+}
+
+.admin-participants table {
+  min-width: 0;
+}
+
 .exchange-window-editor table {
   table-layout: fixed;
 }

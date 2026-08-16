@@ -4615,6 +4615,12 @@ function renderAdminAccess() {
 function renderAdminOverview() {
   if (!els.adminOverviewData) return;
   const loadedStages = state.stages.filter((stage) => String(stage.results || "").trim()).length;
+  const participantRows = state.teams.map((team) => `
+    <tr>
+      <td>${escapeHtml(team.name || "-")}</td>
+      <td>${escapeHtml(team.teamName || "-")}</td>
+    </tr>
+  `).join("");
   const windows = normalizeExchangeWindows(state.settings.exchangeWindows);
   const openWindow = windows.find((window) => {
     const from = new Date(window.from);
@@ -4631,6 +4637,17 @@ function renderAdminOverview() {
       <article><strong>Adminlog</strong><span>${formatNumber(adminLogItems.length)} wijzigingen</span></article>
       <article><strong>Herberekenen</strong><span>Gebruik Stand > Herbereken vanaf etappe 2 na team- of regelwijzigingen.</span></article>
     </div>
+    <section class="admin-participants">
+      <h3>Deelnemers (${formatNumber(state.teams.length)})</h3>
+      ${participantRows ? `
+        <div class="data-table">
+          <table>
+            <thead><tr><th>Naam</th><th>Teamnaam</th></tr></thead>
+            <tbody>${participantRows}</tbody>
+          </table>
+        </div>
+      ` : '<p class="hint">Nog geen deelnemers aangemeld.</p>'}
+    </section>
   `;
 }
 
