@@ -1,8 +1,12 @@
-const APP_ASSET_VERSION = "20260816-1";
+const APP_ASSET_VERSION = "20260816-2";
 
 (async function loadRound() {
   const params = new URLSearchParams(window.location.search);
-  const roundId = params.get("round") || "tour-2026";
+  const pathRoundId = {
+    tour2026: "tour-2026",
+    vuelta2026: "vuelta-2026"
+  }[window.location.pathname.split("/").filter(Boolean)[0]];
+  const roundId = params.get("round") || pathRoundId || "tour-2026";
   try {
     const response = await fetch(`../rounds/${encodeURIComponent(roundId)}.json`, { cache: "no-store" });
     if (!response.ok) throw new Error(`Rondeconfig niet gevonden (${response.status})`);
