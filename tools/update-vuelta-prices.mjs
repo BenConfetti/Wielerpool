@@ -96,7 +96,7 @@ function role(s){
 }
 function priceFor(s, youth, roleName){
   const weighted=(roleScore[roleName]*15+(youth?100:0)*10+(s.gc/max.gc*100)*35+(s.points/max.points*100)*20+(s.climb/max.climb*100)*15+(s.tt/max.tt*100)*5)/100;
-  return Math.max(300,Math.min(2500,Math.round(300+2200*Math.pow(weighted/100,1.35))));
+  return Math.max(300,Math.min(4500,Math.round(300+4200*Math.pow(weighted/100,1.35))));
 }
 const calculated=riders.map(r=>{const s=oldStats.get(r.Rider)||{gc:0,points:0,climb:0,tt:0}; const roleName=role(s); const youth=/^(1|true|yes|ja)$/i.test(r.Youth); return {...r,...s,role:roleName,price:priceFor(s,youth,roleName)};});
 calculated.sort((a,b)=>b.price-a.price||a.Rider.localeCompare(b.Rider)); calculated.forEach((r,i)=>r.rank=i+1);
@@ -108,6 +108,7 @@ await fs.writeFile(path.join(root,"frontend/data/vuelta-2026-startlist.csv"),sta
 
 const wb=Workbook.create(); const sh=wb.worksheets.add("Renners"); const settings=wb.worksheets.add("Instellingen");
 const settingsValues=lines.find(x=>x.kind==='table'&&x.sheet==='Instellingen').values;
+settingsValues[16][1]=4500;
 settingsValues[18][1]=1;
 settings.getRange("A1:E26").values=settingsValues;
 const title=[["Wielerpool - PCS-prijsmodel"],["Bijgewerkt op 18-08-2026 met de actuele Vuelta-startlijst en PCS-profielscores."]]; sh.getRange("A1:A2").values=title;
