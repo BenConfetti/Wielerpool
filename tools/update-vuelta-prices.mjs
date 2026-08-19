@@ -8,6 +8,14 @@ const outDir = path.join(root, "outputs", "vuelta-2026-20260818");
 
 // [oneday, gc, tt, sprint, climber] from the linked PCS rider profiles.
 const additions = {
+  "BILBAO Pello":[2019,5098,1187,92,5391], "GOVEKAR Matevž":[320,70,132,363,84],
+  "OMRZEL Jakob":[90,332,23,0,256], "PAASSCHENS Mathijs":[219,223,6,56,40], "VALTER Attila":[795,1229,332,30,1233],
+  "BENNETT George":[904,3681,276,26,3070], "HOFSTETTER Hugo":[3408,175,0,2388,29],
+  "KRETSCHY Moritz":[31,197,65,20,60], "MARTÍ Pau":[143,69,44,20,136], "SCHULTZ Nick":[466,877,53,16,938],
+  "VAN TRICHT Floris":[167,0,1,107,1], "VAN DEN BOSSCHE Fabio":[197,219,17,46,44],
+  "GAROFOLI Gianmarco":[206,204,24,35,454], "CAMPRUBÍ Marcel":[215,111,1,0,182],
+  "DUNBAR Eddie":[352,1559,301,66,1188], "GLOAG Thomas":[80,411,1,14,332],
+  "AZPARREN Xabier Mikel":[44,195,440,26,16], "GONZÁLEZ David":[129,111,5,229,126],
   "DEBRUYNE Ramses":[168,102,17,48,374], "GROVES Kaden":[531,291,359,1575,225], "GOGL Michael":[626,501,76,36,340],
   "BUSATTO Francesco":[601,113,2,29,224], "SENTJENS Sente":[136,11,2,242,10], "DE VYLDER Lindsay":[163,5,0,130,15],
   "CHAMBERLAIN Oscar":[54,25,137,24,2], "DE PESTEL Sander":[246,86,236,94,4], "LABROSSE Jordan":[243,56,71,48,96],
@@ -50,10 +58,14 @@ const startText = await fs.readFile(path.join(root,"frontend/data/vuelta-2026-st
 const parseCsv = text => text.trim().split(/\r?\n/).map(line => line.match(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g).map(v=>v.replace(/^,/,"").replace(/^"|"$/g,"").replace(/""/g,'"')));
 const startRows = parseCsv(startText); const headers=startRows.shift();
 let riders = startRows.map(r => Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])));
-const removed=new Set(["RIESEBEEK Oscar","VERGALLITO Luca","VAN DEN BERG Marijn","QUINTANA Nairo","HAJEK Alexander","PITHIE Laurence","HUISING Menno","TRÆEN Torstein"]);
+const removed=new Set(["RIESEBEEK Oscar","VERGALLITO Luca","VAN DEN BERG Marijn","QUINTANA Nairo","HAJEK Alexander","PITHIE Laurence","HUISING Menno","TRÆEN Torstein","LAURANCE Axel"]);
 riders=riders.filter(r=>!removed.has(r.Rider));
 riders=[...new Map(riders.map(r=>[r.Rider,r])).values()];
 const meta=[
+ ["BILBAO Pello","Bahrain - Victorious",0,"pello-bilbao"],["GOVEKAR Matevž","Bahrain - Victorious",0,"matevz-govekar"],["OMRZEL Jakob","Bahrain - Victorious",1,"jakob-omrzel"],["PAASSCHENS Mathijs","Bahrain - Victorious",0,"mathijs-paasschens"],["VALTER Attila","Bahrain - Victorious",0,"attila-valter"],
+ ["BENNETT George","NSN Cycling Team",0,"george-bennett"],["HOFSTETTER Hugo","NSN Cycling Team",0,"hugo-hofstetter"],["KRETSCHY Moritz","NSN Cycling Team",1,"moritz-kretschy"],["MARTÍ Pau","NSN Cycling Team",1,"pau-marti-soriano"],["SCHULTZ Nick","NSN Cycling Team",0,"nick-schultz"],["VAN TRICHT Floris","NSN Cycling Team",1,"floris-van-tricht"],
+ ["VAN DEN BOSSCHE Fabio","Soudal Quick-Step",0,"fabio-van-den-bossche"],["GAROFOLI Gianmarco","Soudal Quick-Step",1,"gianmarco-garofoli"],
+ ["CAMPRUBÍ Marcel","Pinarello Q36.5 Pro Cycling Team",1,"marcel-camprubi"],["DUNBAR Eddie","Pinarello Q36.5 Pro Cycling Team",0,"edward-irl-dunbar"],["GLOAG Thomas","Pinarello Q36.5 Pro Cycling Team",1,"thomas-gloag"],["AZPARREN Xabier Mikel","Pinarello Q36.5 Pro Cycling Team",0,"xabier-mikel-azparren-irurzun"],["GONZÁLEZ David","Pinarello Q36.5 Pro Cycling Team",0,"david-gonzalez-lopez"],
  ["DEBRUYNE Ramses","Alpecin - Premier Tech",1,"ramses-debruyne"],["GROVES Kaden","Alpecin - Premier Tech",0,"kaden-groves"],["GOGL Michael","Alpecin - Premier Tech",0,"michael-gogl"],["BUSATTO Francesco","Alpecin - Premier Tech",1,"francesco-busatto"],["SENTJENS Sente","Alpecin - Premier Tech",1,"sente-sentjens"],["DE VYLDER Lindsay","Alpecin - Premier Tech",0,"lindsay-de-vylder"],
  ["CHAMBERLAIN Oscar","Decathlon CMA CGM Team",1,"oscar-chamberlain"],["DE PESTEL Sander","Decathlon CMA CGM Team",0,"sander-de-pestel"],["LABROSSE Jordan","Decathlon CMA CGM Team",1,"jordan-labrosse"],["MÜHLBERGER Gregor","Decathlon CMA CGM Team",0,"gregor-muhlberger"],["SCOTSON Callum","Decathlon CMA CGM Team",0,"callum-scotson"],
  ["ALBANESE Vincenzo","EF Education - EasyPost",0,"vincenzo-albanese"],["BELOKI Markel","EF Education - EasyPost",1,"markel-beloki"],["MACKELLAR Alastair","EF Education - EasyPost",1,"alastair-mackellar"],["RAFFERTY Darren","EF Education - EasyPost",1,"darren-rafferty"],["STEINHAUSER Georg","EF Education - EasyPost",1,"georg-steinhauser"],["RODRIGUEZ Juan Felipe","EF Education - EasyPost",1,"juan-felipe-rodriguez"],
@@ -111,7 +123,7 @@ const settingsValues=lines.find(x=>x.kind==='table'&&x.sheet==='Instellingen').v
 settingsValues[16][1]=4500;
 settingsValues[18][1]=1;
 settings.getRange("A1:E26").values=settingsValues;
-const title=[["Wielerpool - PCS-prijsmodel"],["Bijgewerkt op 18-08-2026 met de actuele Vuelta-startlijst en PCS-profielscores."]]; sh.getRange("A1:A2").values=title;
+const title=[["Wielerpool - PCS-prijsmodel"],["Bijgewerkt op 19-08-2026 met de actuele Vuelta-startlijst en PCS-profielscores."]]; sh.getRange("A1:A2").values=title;
 const cols=["Renner","Ploeg","Jongere?","Verwachte rol","Algemeen (GC)","Punten (Sprint + Oneday)","Berg (Climber)","TT","Rolscore","Jongerenscore","Gewogen score","Modelprijs","Handmatige correctie","Definitieve BC-prijs","Prijsklasse","Invoercontrole","PCS-profiel"];
 sh.getRange("A5:Q5").values=[cols];
 const byStart=[...calculated].sort((a,b)=>+a.BIB-+b.BIB);
