@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Workbook, SpreadsheetFile } from "file:///C:/Users/kejes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs";
+import { FileBlob, Workbook, SpreadsheetFile } from "file:///C:/Users/kejes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs";
 
 const root = process.cwd();
-const modelInspect = "C:/Users/kejes/Documents/Codex/2026-07-24/we-werken-aan-mijn-wielerpool-project-2/outputs/wielerpool_prijslijst/Wielerpool_prijslijst_model.xlsx.inspect.ndjson";
 const outDir = path.join(root, "outputs", "vuelta-2026-20260818");
+const workbookPath = path.join(outDir, "Wielerpool_prijslijst_vuelta_2026.xlsx");
 
 // [oneday, gc, tt, sprint, climber] from the linked PCS rider profiles.
 const additions = {
@@ -48,17 +48,28 @@ const additions = {
   "MONIQUET Sylvain":[336,711,68,9,602], "OURSELIN Paul":[224,231,34,32,112],
   "SAMITIER Sergio":[128,360,0,0,164], "MCKENZIE Hamish":[55,5,44,8,25],
   "FERNÁNDEZ Sinuhé":[0,32,0,3,23], "DE JONG Timo":[90,43,41,278,4],
-  "ROOSEN Timo":[1030,452,200,390,146], "MACÍAS César":[0,0,0,0,0]
+  "ROOSEN Timo":[1030,452,200,390,146], "MACÍAS César":[0,0,0,0,0],
+  "HAIG Jack":[727,3078,316,34,2539], "HAMILTON Lucas":[426,1185,84,40,969],
+  "LAURANCE Axel":[619,452,42,174,537], "SVESTAD-BÅRDSENG Embret":[81,436,39,28,336],
+  "TARLING Joshua":[171,201,1826,41,28], "TURNER Ben":[533,352,268,337,141],
+  "VANSEVENANT Mauri":[902,918,65,0,1121]
 };
 
-const lines = (await fs.readFile(modelInspect, "utf8")).trim().split(/\r?\n/).map(JSON.parse);
-const oldTable = lines.find(x => x.kind === "table" && x.sheet === "Renners").values;
-const oldStats = new Map(oldTable.slice(5).filter(r => r[0]).map(r => [r[0], {gc:+r[4], points:+r[5], climb:+r[6], tt:+r[7]}]));
+const currentWorkbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+const beforePreview = await currentWorkbook.render({sheetName:"Renners",range:"A1:Q25",scale:1,format:"png"});
+await fs.writeFile(path.join(process.env.TEMP || outDir,"vuelta-prijzen-before.png"),new Uint8Array(await beforePreview.arrayBuffer()));
+const currentTable = currentWorkbook.worksheets.getItem("Renners").getUsedRange().values;
+const currentRows = currentTable.slice(5).filter(r => r[0]);
+const currentByName = new Map(currentRows.map(r => [r[0], {
+  role:r[3], gc:+r[4]||0, points:+r[5]||0, climb:+r[6]||0, tt:+r[7]||0,
+  correction:Number.isFinite(+r[12]) ? +r[12] : 0, finalPrice:Number.isFinite(+r[13]) ? +r[13] : null
+}]));
+const oldStats = new Map(currentRows.map(r => [r[0], {gc:+r[4]||0, points:+r[5]||0, climb:+r[6]||0, tt:+r[7]||0}]));
 const startText = await fs.readFile(path.join(root,"frontend/data/vuelta-2026-startlist.csv"),"utf8");
 const parseCsv = text => text.trim().split(/\r?\n/).map(line => line.match(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g).map(v=>v.replace(/^,/,"").replace(/^"|"$/g,"").replace(/""/g,'"')));
 const startRows = parseCsv(startText); const headers=startRows.shift();
 let riders = startRows.map(r => Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])));
-const removed=new Set(["RIESEBEEK Oscar","VERGALLITO Luca","VAN DEN BERG Marijn","QUINTANA Nairo","HAJEK Alexander","PITHIE Laurence","HUISING Menno","TRÆEN Torstein","LAURANCE Axel"]);
+const removed=new Set(["RIESEBEEK Oscar","VERGALLITO Luca","VAN DEN BERG Marijn","QUINTANA Nairo","HAJEK Alexander","PITHIE Laurence","HUISING Menno","TRÆEN Torstein","DE PLUS Laurens","CRAS Steff"]);
 riders=riders.filter(r=>!removed.has(r.Rider));
 riders=[...new Map(riders.map(r=>[r.Rider,r])).values()];
 const meta=[
@@ -75,7 +86,11 @@ const meta=[
  ["FISHER-BLACK Finn","Red Bull - BORA - hansgrohe",1,"finn-fisher-black"],["MEEUS Jordi","Red Bull - BORA - hansgrohe",0,"jordi-meeus"],["MOSCON Gianni","Red Bull - BORA - hansgrohe",0,"gianni-moscon"],["THORNLEY Callum","Red Bull - BORA - hansgrohe",1,"callum-thornley"],["WANDAHL Frederik","Red Bull - BORA - hansgrohe",1,"frederik-wandahl"],
  ["ARMIRAIL Bruno","Team Visma | Lease a Bike",0,"bruno-armirail"],["KUSS Sepp","Team Visma | Lease a Bike",0,"sepp-kuss"],
  ["JOHANNESSEN Tobias Halland","Uno-X Mobility",0,"tobias-halland-johannessen"],["TILLER Rasmus","Uno-X Mobility",0,"rasmus-tiller"],["DALBY Simon","Uno-X Mobility",1,"simon-dalby"],["TJØTTA Martin","Uno-X Mobility",1,"martin-tjotta"],
- ["BARTA Will","Tudor Pro Cycling Team",0,"william-barta"],["KLUCKERS Arthur","Tudor Pro Cycling Team",0,"arthur-kluckers"],["THALMANN Roland","Tudor Pro Cycling Team",0,"roland-thalmann"],["WARBASSE Larry","Tudor Pro Cycling Team",0,"lawrence-warbasse"],["WEISS Fabian","Tudor Pro Cycling Team",1,"fabian-weiss"],["WILKSCH Hannes","Tudor Pro Cycling Team",1,"hannes-wilksch"]
+ ["BARTA Will","Tudor Pro Cycling Team",0,"william-barta"],["KLUCKERS Arthur","Tudor Pro Cycling Team",0,"arthur-kluckers"],["THALMANN Roland","Tudor Pro Cycling Team",0,"roland-thalmann"],["WARBASSE Larry","Tudor Pro Cycling Team",0,"lawrence-warbasse"],["WEISS Fabian","Tudor Pro Cycling Team",1,"fabian-weiss"],["WILKSCH Hannes","Tudor Pro Cycling Team",1,"hannes-wilksch"],
+ ["HAIG Jack","Netcompany INEOS",0,"jack-haig"],["HAMILTON Lucas","Netcompany INEOS",0,"lucas-hamilton"],
+ ["LAURANCE Axel","Netcompany INEOS",1,"axel-laurance"],["SVESTAD-BÅRDSENG Embret","Netcompany INEOS",1,"embret-svestad-bardseng"],
+ ["TARLING Joshua","Netcompany INEOS",1,"joshua-tarling"],["TURNER Ben","Netcompany INEOS",0,"ben-turner"],
+ ["VANSEVENANT Mauri","Soudal Quick-Step",0,"mauri-vansevenant"]
 ];
 for(const [Rider,Team,Youth,slug] of meta) {
   if (!riders.some(r => r.Rider === Rider)) riders.push({BIB:"",Rider,Nation:"",Team,Youth:String(Youth),PCS_URL:`https://www.procyclingstats.com/rider/${slug}`});
@@ -110,25 +125,34 @@ function priceFor(s, youth, roleName){
   const weighted=(roleScore[roleName]*15+(youth?100:0)*10+(s.gc/max.gc*100)*35+(s.points/max.points*100)*20+(s.climb/max.climb*100)*15+(s.tt/max.tt*100)*5)/100;
   return Math.max(300,Math.min(4500,Math.round(300+4200*Math.pow(weighted/100,1.35))));
 }
-const calculated=riders.map(r=>{const s=oldStats.get(r.Rider)||{gc:0,points:0,climb:0,tt:0}; const roleName=role(s); const youth=/^(1|true|yes|ja)$/i.test(r.Youth); return {...r,...s,role:roleName,price:priceFor(s,youth,roleName)};});
-calculated.sort((a,b)=>b.price-a.price||a.Rider.localeCompare(b.Rider)); calculated.forEach((r,i)=>r.rank=i+1);
+const calculated=riders.map(r=>{
+  const s=oldStats.get(r.Rider)||{gc:0,points:0,climb:0,tt:0};
+  const existing=currentByName.get(r.Rider);
+  const roleName=existing?.role || role(s);
+  const youth=/^(1|true|yes|ja)$/i.test(r.Youth);
+  const price=priceFor(s,youth,roleName);
+  const correction=existing?.correction || 0;
+  const finalPrice=Math.max(300,Math.min(4500,price+correction));
+  return {...r,...s,role:roleName,price,correction,finalPrice};
+});
+calculated.sort((a,b)=>b.finalPrice-a.finalPrice||a.Rider.localeCompare(b.Rider)); calculated.forEach((r,i)=>r.rank=i+1);
 const quote=s=>'"'+String(s??'').replaceAll('"','""')+'"';
-const bc=[['renner','bc','rank','team','pcs_url'].map(quote).join(';'),...calculated.map(r=>[r.Rider,r.price,r.rank,r.Team,r.PCS_URL].map(quote).join(';'))].join('\r\n')+'\r\n';
+const bc=[['renner','bc','rank','team','pcs_url'].map(quote).join(';'),...calculated.map(r=>[r.Rider,r.finalPrice,r.rank,r.Team,r.PCS_URL].map(quote).join(';'))].join('\r\n')+'\r\n';
 await fs.writeFile(path.join(root,"frontend/data/vuelta-2026-bc.csv"),bc,"utf8");
 const startOut=[headers.join(','),...riders.map(r=>headers.map(h=>quote(r[h])).join(','))].join('\r\n')+'\r\n';
 await fs.writeFile(path.join(root,"frontend/data/vuelta-2026-startlist.csv"),startOut,"utf8");
 
 const wb=Workbook.create(); const sh=wb.worksheets.add("Renners"); const settings=wb.worksheets.add("Instellingen");
-const settingsValues=lines.find(x=>x.kind==='table'&&x.sheet==='Instellingen').values;
+const settingsValues=currentWorkbook.worksheets.getItem("Instellingen").getRange("A1:E26").values;
 settingsValues[16][1]=4500;
 settingsValues[18][1]=1;
 settings.getRange("A1:E26").values=settingsValues;
-const title=[["Wielerpool - PCS-prijsmodel"],["Bijgewerkt op 19-08-2026 met de actuele Vuelta-startlijst en PCS-profielscores."]]; sh.getRange("A1:A2").values=title;
+const title=[["Wielerpool - PCS-prijsmodel"],["Bijgewerkt op 20-08-2026 met de actuele Vuelta-startlijst en PCS-profielscores."]]; sh.getRange("A1:A2").values=title;
 const cols=["Renner","Ploeg","Jongere?","Verwachte rol","Algemeen (GC)","Punten (Sprint + Oneday)","Berg (Climber)","TT","Rolscore","Jongerenscore","Gewogen score","Modelprijs","Handmatige correctie","Definitieve BC-prijs","Prijsklasse","Invoercontrole","PCS-profiel"];
 sh.getRange("A5:Q5").values=[cols];
 const byStart=[...calculated].sort((a,b)=>+a.BIB-+b.BIB);
 sh.getRange(`A6:H${5+byStart.length}`).values=byStart.map(r=>[r.Rider,r.Team,/^(1|true|yes|ja)$/i.test(r.Youth)?"Ja":"Nee",r.role,r.gc,r.points,r.climb,r.tt]);
-sh.getRange(`M6:M${5+byStart.length}`).values=byStart.map(()=>[null]); sh.getRange(`Q6:Q${5+byStart.length}`).values=byStart.map(r=>[r.PCS_URL]);
+sh.getRange(`M6:M${5+byStart.length}`).values=byStart.map(r=>[r.correction || null]); sh.getRange(`Q6:Q${5+byStart.length}`).values=byStart.map(r=>[r.PCS_URL]);
 sh.getRange("I6").formulas=[["=IF(D6=\"\",\"\",IFERROR(VLOOKUP(D6,'Instellingen'!$D$5:$E$13,2,FALSE),\"\"))"]]; sh.getRange(`I6:I${5+byStart.length}`).fillDown();
 sh.getRange("J6").formulas=[["=IF(C6=\"\",\"\",IF(C6=\"Ja\",100,0))"]]; sh.getRange(`J6:J${5+byStart.length}`).fillDown();
 sh.getRange("K6").formulas=[[`=IF(D6=\"\",\"\",SUM(I6*'Instellingen'!$B$5,J6*'Instellingen'!$B$6,IFERROR(E6/MAX($E$6:$E$${5+byStart.length})*100,0)*'Instellingen'!$B$7,IFERROR(F6/MAX($F$6:$F$${5+byStart.length})*100,0)*'Instellingen'!$B$8,IFERROR(G6/MAX($G$6:$G$${5+byStart.length})*100,0)*'Instellingen'!$B$9,IFERROR(H6/MAX($H$6:$H$${5+byStart.length})*100,0)*'Instellingen'!$B$10)/SUM('Instellingen'!$B$5:$B$10))`]]; sh.getRange(`K6:K${5+byStart.length}`).fillDown();
@@ -140,4 +164,8 @@ sh.getRange("A1:Q1").format={fill:"#C8102E",font:{bold:true,color:"#FFFFFF",size
 settings.getRange("A1:E1").format={fill:"#1F4E78",font:{bold:true,color:"#FFFFFF"}}; settings.getRange("A:E").format.autofitColumns();
 await fs.mkdir(outDir,{recursive:true}); const file=await SpreadsheetFile.exportXlsx(wb); await file.save(path.join(outDir,"Wielerpool_prijslijst_vuelta_2026.xlsx"));
 const preview=await wb.render({sheetName:"Renners",range:"A1:Q25",scale:1,format:"png"}); await fs.writeFile(path.join(outDir,"preview.png"),new Uint8Array(await preview.arrayBuffer()));
-const errors=await wb.inspect({kind:"match",searchTerm:"#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",options:{useRegex:true,maxResults:100}}); console.log(JSON.stringify({riders:calculated.length,min:Math.min(...calculated.map(r=>r.price)),max:Math.max(...calculated.map(r=>r.price)),errors:errors.ndjson,newPrices:calculated.filter(r=>additions[r.Rider]).map(r=>[r.Rider,r.price,r.role])}));
+const settingsPreview=await wb.render({sheetName:"Instellingen",range:"A1:E26",scale:1,format:"png"}); await fs.writeFile(path.join(outDir,"preview-instellingen.png"),new Uint8Array(await settingsPreview.arrayBuffer()));
+const errors=await wb.inspect({kind:"match",searchTerm:"#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",options:{useRegex:true,maxResults:100}});
+const newNames=new Set(["HAIG Jack","HAMILTON Lucas","LAURANCE Axel","SVESTAD-BÅRDSENG Embret","TARLING Joshua","TURNER Ben","VANSEVENANT Mauri"]);
+const zeroScores=calculated.filter(r=>r.gc===0&&r.points===0&&r.climb===0&&r.tt===0).map(r=>r.Rider);
+console.log(JSON.stringify({riders:calculated.length,min:Math.min(...calculated.map(r=>r.finalPrice)),max:Math.max(...calculated.map(r=>r.finalPrice)),errors:errors.ndjson,newPrices:calculated.filter(r=>newNames.has(r.Rider)).map(r=>[r.Rider,r.finalPrice,r.role]),zeroScores}));
