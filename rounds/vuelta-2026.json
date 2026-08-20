@@ -100,7 +100,7 @@
   },
   "corrections": [],
   "dataVersion": "1",
-  "priceVersion": "pcs-profile-model-2026-08-20-v5",
+  "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "stageSchedule": [
     { "number": 1, "date": "22/08", "day": "Saturday", "type": "time-trial", "label": "ITT", "route": "Monaco - Monaco", "km": 9.4 },
     { "number": 2, "date": "23/08", "day": "Sunday", "type": "hilly", "label": "heuvel", "route": "Monaco - Manosque", "km": 214.3 },

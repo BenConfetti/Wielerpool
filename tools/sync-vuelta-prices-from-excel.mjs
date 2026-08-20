@@ -29,6 +29,7 @@ const parseSemicolonCsv = (text) => text.trim().split(/\r?\n/).map((line) => {
 });
 
 const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(workbookPath));
+const modelMaximum = Number(workbook.worksheets.getItem("Instellingen").getRange("B17").values[0][0]);
 const rows = workbook.worksheets.getItem("Renners").getUsedRange().values.slice(5).filter((row) => row[0]);
 const excelPrices = new Map(rows.map((row) => [normalize(row[0]), {
   name: String(row[0]),
@@ -51,4 +52,4 @@ csvRows.forEach((row, index) => { row[2] = String(index + 1); });
 
 const output = [header, ...csvRows].map((row) => row.map(quote).join(";")).join("\r\n") + "\r\n";
 await fs.writeFile(csvPath, output, "utf8");
-console.log(JSON.stringify({ riders: csvRows.length, changes, pogacar: csvRows.find((row) => normalize(row[0]) === "pogacar tadej")?.[1] }));
+console.log(JSON.stringify({ riders: csvRows.length, modelMaximum, changes, pogacar: csvRows.find((row) => normalize(row[0]) === "pogacar tadej")?.[1] }));
