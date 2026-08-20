@@ -75,6 +75,9 @@ let feedbackItems = loadFeedback();
 let adminLogItems = loadAdminLog();
 let adminUnlocked = sessionStorage.getItem(`${STORAGE_PREFIX}-admin-unlocked`) === "1";
 let participantAccess = loadParticipantAccess();
+const CLIENT_ID = getOrCreateClientId();
+let runtimeSyncReady = false;
+let runtimeSyncTimer = null;
 let storageSyncError = "";
 
 const els = {
@@ -143,7 +146,8 @@ document.getElementById("createSelectionButton")?.addEventListener("click", () =
 
 document.getElementById("closeSelectionButton")?.addEventListener("click", () => {
   participantAccess = null;
-  sessionStorage.removeItem(`${STORAGE_PREFIX}-participant-access`);
+  localStorage.removeItem(`${STORAGE_PREFIX}-participant-access`);
+  persistClientState();
   render();
 });
 document.getElementById("addTeamButton")?.addEventListener("click", () => {
@@ -934,10 +938,20 @@ function applyWithdrawalRecordsToTourRiders() {
 
 function loadParticipantAccess() {
   try {
-    return JSON.parse(sessionStorage.getItem(`${STORAGE_PREFIX}-participant-access`)) || null;
+    return JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}-participant-access`)) || null;
   } catch {
     return null;
   }
+}
+
+function getOrCreateClientId() {
+  const key = `${STORAGE_PREFIX}-client-id`;
+  let clientId = localStorage.getItem(key);
+  if (!clientId) {
+    clientId = crypto.randomUUID();
+    localStorage.setItem(key, clientId);
+  }
+  return clientId;
 }
 
 function participantMatches(team, access = participantAccess) {
@@ -974,7 +988,8 @@ function openParticipantSelection(createIfMissing) {
     persistState();
   }
   participantAccess = { name, teamName };
-  sessionStorage.setItem(`${STORAGE_PREFIX}-participant-access`, JSON.stringify(participantAccess));
+  localStorage.setItem(`${STORAGE_PREFIX}-participant-access`, JSON.stringify(participantAccess));
+  persistClientState();
   render();
   showParticipantAccessStatus(existingIndex >= 0 ? "Selectie opgehaald. Je kunt deze hieronder aanpassen." : "Nieuwe selectie aangemaakt. Stel hieronder je ploeg samen.", "success");
 }
@@ -4823,6 +4838,83 @@ async function syncTeamsFromApi() {
   }
 }
 
+async function syncRuntimeFromApi() {
+  if (POOL_STORAGE.mode !== "api") return false;
+  try {
+    const remote = await POOL_STORAGE.api.getRuntimeState();
+    if (remote?.state && Object.keys(remote.state).length) {
+      state = migrateState({ ...remote.state, teams: state.teams });
+      feedbackItems = Array.isArray(remote.feedback) ? remote.feedback : [];
+      adminLogItems = Array.isArray(remote.adminLog) ? remote.adminLog : [];
+      POOL_STORAGE.saveState(state);
+      POOL_STORAGE.saveFeedback(feedbackItems);
+      POOL_STORAGE.saveAdminLog(adminLogItems);
+    } else if (hasMeaningfulLocalRuntimeData()) {
+      await saveRuntimeSnapshot();
+    }
+    return true;
+  } catch (error) {
+    console.warn("Online rondegegevens konden niet worden geladen; lokale opslag blijft actief.", error);
+    return false;
+  }
+}
+
+function hasMeaningfulLocalRuntimeData() {
+  return Boolean(
+    state.stages?.length
+    || state.manualSwaps?.length
+    || state.settings?.introHtml
+    || Object.keys(state.settings?.bcPrices || {}).length
+    || feedbackItems.length
+    || adminLogItems.length
+    || Number(state.settings?.stake) !== Number(ROUND_SETTINGS.stake ?? 10)
+    || Number(state.settings?.budget) !== Number(ROUND_SETTINGS.budget ?? 20000)
+    || JSON.stringify(state.settings?.prizePotSplit) !== JSON.stringify(normalizePrizePotSplit(ROUND_SETTINGS.prizePotSplit))
+    || JSON.stringify(state.settings?.prizeWeights) !== JSON.stringify(normalizePrizeWeights(ROUND_SETTINGS.prizeWeights))
+    || JSON.stringify(state.settings?.exchangeWindows) !== JSON.stringify(normalizeExchangeWindows(ROUND_CONFIG.exchangeWindows))
+  );
+}
+
+async function syncClientStateFromApi() {
+  if (POOL_STORAGE.mode !== "api") return;
+  try {
+    const remote = await POOL_STORAGE.api.getClientState(CLIENT_ID);
+    if (remote?.participantAccess) {
+      participantAccess = remote.participantAccess;
+      localStorage.setItem(`${STORAGE_PREFIX}-participant-access`, JSON.stringify(participantAccess));
+    } else {
+      await persistClientState();
+    }
+  } catch (error) {
+    console.warn("Online browserstatus kon niet worden geladen; lokale toegang blijft actief.", error);
+  }
+}
+
+function queueRuntimeSync() {
+  if (POOL_STORAGE.mode !== "api" || !runtimeSyncReady) return;
+  clearTimeout(runtimeSyncTimer);
+  runtimeSyncTimer = setTimeout(saveRuntimeSnapshot, 300);
+}
+
+async function saveRuntimeSnapshot() {
+  const runtimeState = structuredClone(state);
+  delete runtimeState.teams;
+  try {
+    await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, feedback: feedbackItems, adminLog: adminLogItems });
+  } catch (error) {
+    console.warn("Online rondegegevens konden niet worden opgeslagen; de lokale kopie is behouden.", error);
+  }
+}
+
+async function persistClientState() {
+  if (POOL_STORAGE.mode !== "api") return;
+  try {
+    await POOL_STORAGE.api.saveClientState(CLIENT_ID, { participantAccess, uiState: {} });
+  } catch (error) {
+    console.warn("Online browserstatus kon niet worden opgeslagen.", error);
+  }
+}
+
 function showAppLoadingStatus(message) {
   if (!els.appLoadingStatus) return;
   els.appLoadingStatus.textContent = message;
@@ -4837,6 +4929,7 @@ function hideAppLoadingStatus() {
 
 function persistState() {
   POOL_STORAGE.saveState(state);
+  queueRuntimeSync();
 }
 
 function loadState() {
@@ -4845,6 +4938,7 @@ function loadState() {
 
 function persistFeedback() {
   POOL_STORAGE.saveFeedback(feedbackItems);
+  queueRuntimeSync();
 }
 
 function loadFeedback() {
@@ -4854,6 +4948,7 @@ function loadFeedback() {
 
 function persistAdminLog() {
   POOL_STORAGE.saveAdminLog(adminLogItems);
+  queueRuntimeSync();
 }
 
 function loadAdminLog() {
@@ -4876,8 +4971,11 @@ function downloadTextFile(filename, content, type) {
 (async function startApp() {
   applyRoundConfig();
   renderRoundIntro();
+  const runtimeAvailable = await syncRuntimeFromApi();
+  await syncClientStateFromApi();
   await loadOfficialStages();
   await syncTeamsFromApi();
   render();
+  runtimeSyncReady = runtimeAvailable;
 })();
 

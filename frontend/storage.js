@@ -58,6 +58,10 @@
         getRiders: () => request(`/rounds/${encodeURIComponent(roundId)}/riders`)
         ,listTeams: () => request("/rounds/" + encodeURIComponent(roundId) + "/teams")
         ,saveTeamSelection: (team) => send("/rounds/" + encodeURIComponent(roundId) + "/teams", team)
+        ,getRuntimeState: () => request("/rounds/" + encodeURIComponent(roundId) + "/runtime-state")
+        ,saveRuntimeState: (payload) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state", payload, "PUT")
+        ,getClientState: (clientId) => request("/rounds/" + encodeURIComponent(roundId) + "/client-state/" + encodeURIComponent(clientId))
+        ,saveClientState: (clientId, payload) => send("/rounds/" + encodeURIComponent(roundId) + "/client-state/" + encodeURIComponent(clientId), payload, "PUT")
       }),
       remove: (suffix) => localStorage.removeItem(key(suffix))
     });
@@ -68,9 +72,9 @@
       return response.json();
     }
 
-    async function send(path, body) {
+    async function send(path, body, method = "POST") {
       const response = await fetch(apiBase + path, {
-        method: "POST",
+        method,
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
