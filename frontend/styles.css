@@ -1753,6 +1753,12 @@ tbody tr:hover {
   width: auto;
 }
 
+.rider-choice input.choice-limit-reached:not(:disabled) {
+  cursor: pointer;
+  filter: grayscale(1);
+  opacity: 0.38;
+}
+
 .rider-choice-youth {
   font-weight: 800;
 }

@@ -1395,6 +1395,8 @@ function updateTeamRiderAvailability(teamIndex, options = {}) {
   const active = readSelectedRidersFromDom(teamIndex, "rider");
   const reserves = readSelectedRidersFromDom(teamIndex, "reserve");
   const budget = calculateTeamBudgetFromLists(active, reserves);
+  const activeLimitReached = active.length >= STARTER_COUNT;
+  const reserveLimitReached = reserves.length >= RESERVE_COUNT;
   document.querySelectorAll(`[data-choice-label="${teamIndex}"]`).forEach((row) => {
     const activeChoice = row.querySelector(`[data-team-rider-choice="${teamIndex}"]`);
     const reserveChoice = row.querySelector(`[data-team-reserve-choice="${teamIndex}"]`);
@@ -1407,10 +1409,18 @@ function updateTeamRiderAvailability(teamIndex, options = {}) {
     if (activeChoice) {
       activeChoice.disabled = selectedAsReserve || alreadyChosenElsewhere;
       activeChoice.classList.toggle("input-error", Boolean(duplicateChecked));
+      activeChoice.classList.toggle("choice-limit-reached", activeLimitReached && !selectedAsActive);
+      activeChoice.title = activeLimitReached && !selectedAsActive
+        ? `Er zijn al ${STARTER_COUNT} starters gekozen. Vink daarna een andere starter uit.`
+        : "";
     }
     if (reserveChoice) {
       reserveChoice.disabled = selectedAsActive || alreadyChosenElsewhere;
       reserveChoice.classList.toggle("input-error", Boolean(duplicateChecked));
+      reserveChoice.classList.toggle("choice-limit-reached", reserveLimitReached && !selectedAsReserve);
+      reserveChoice.title = reserveLimitReached && !selectedAsReserve
+        ? `Er zijn al ${RESERVE_COUNT} reserves gekozen. Vink daarna een andere reserve uit.`
+        : "";
     }
     row.classList.toggle("rider-choice-disabled", selectedHere || alreadyChosenElsewhere);
     row.classList.toggle("rider-choice-over-budget", budget.overBudget);
