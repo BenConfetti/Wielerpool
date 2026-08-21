@@ -64,7 +64,11 @@ export const repository={
     const fields=[["Deelnemersnaam",previousTeam.name,team.name],["Teamnaam",previousTeam.teamName,team.teamName],["Kleur 1",previousTeam.color1,team.color1],["Kleur 2",previousTeam.color2,team.color2],["Starters",previousTeam.riders,team.riders],["Reserves",previousTeam.reserves,team.reserves]];
     fields.filter(([,before,after])=>String(before||"")!==String(after||"")).forEach(([label,before,after])=>changes.push({createdAt:now,category:"Teams",action:`${label} gewijzigd`,detail:`${previousTeam.teamName} (ploegleider: ${previousTeam.name}): ${before||"-"} -> ${after||"-"}`}));
    }
-   if(changes.length)await client.query(`INSERT INTO round_runtime_state(round_id,state,feedback,admin_log,revision) VALUES($1,'{}'::jsonb,'[]'::jsonb,$2::jsonb,1) ON CONFLICT(round_id) DO UPDATE SET admin_log=$2::jsonb||round_runtime_state.admin_log,revision=round_runtime_state.revision+1,updated_at=now()`,[roundId,JSON.stringify(changes)]);
+   if(changes.length){
+    await client.query("SAVEPOINT team_admin_log");
+    try{await client.query(`INSERT INTO round_runtime_state(round_id,state,feedback,admin_log,revision) VALUES($1,'{}'::jsonb,'[]'::jsonb,$2::jsonb,1) ON CONFLICT(round_id) DO UPDATE SET admin_log=$2::jsonb||round_runtime_state.admin_log,revision=round_runtime_state.revision+1,updated_at=now()`,[roundId,JSON.stringify(changes)])}
+    catch(logError){await client.query("ROLLBACK TO SAVEPOINT team_admin_log");console.error("Team opgeslagen, maar Adminlog niet bijgewerkt.",logError)}
+   }
    await client.query("COMMIT");
    return await this.getTeam(roundId,saved.rows[0].id);
   }catch(error){

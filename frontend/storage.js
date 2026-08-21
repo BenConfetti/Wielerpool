@@ -81,8 +81,10 @@
         body: JSON.stringify(body)
       });
       if (!response.ok) {
-        const error = new Error("API-fout " + response.status);
+        const payload = await response.json().catch(() => ({}));
+        const error = new Error(payload.message || ("API-fout " + response.status));
         error.status = response.status;
+        error.code = payload.code || "";
         throw error;
       }
       return response.json();

@@ -4857,11 +4857,15 @@ async function saveAdminChanges() {
   if (POOL_STORAGE.mode === "api" && teamIdentityChanges.length) {
     try {
       for (const { team } of teamIdentityChanges) Object.assign(team, await POOL_STORAGE.api.saveTeamSelection(team));
-      await refreshRuntimeMetadata();
     } catch (error) {
       state.teams = teamsBeforeSave;
-      showAdminSaveStatus("Team- of deelnemersnaam niet opgeslagen; bestaande teamgegevens zijn ongewijzigd gebleven.", "error");
+      showAdminSaveStatus(error.message || "Team- of deelnemersnaam niet opgeslagen; bestaande teamgegevens zijn ongewijzigd gebleven.", "error");
       return;
+    }
+    try {
+      await refreshRuntimeMetadata();
+    } catch (error) {
+      console.warn("Naam opgeslagen, maar de Adminlog kon niet direct worden ververst.", error);
     }
   }
   teamIdentityChanges.forEach(({ team, beforeName }) => {

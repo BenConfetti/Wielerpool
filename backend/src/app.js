@@ -18,6 +18,6 @@ export function createApp(repository, options = {}) {
   app.get("/api/v1/rounds/:roundId/teams/lookup",async(q,r,n)=>{try{const x=await repository.findTeam(q.params.roundId,q.query.participantName||"",q.query.teamName||"");x?r.json(x):r.status(404).json({code:"TEAM_NOT_FOUND",message:"Selectie niet gevonden."})}catch(e){n(e)}});
   app.get("/api/v1/rounds/:roundId/teams/:teamId",async(q,r,n)=>{try{const x=await repository.getTeam(q.params.roundId,q.params.teamId);x?r.json(x):r.status(404).json({code:"TEAM_NOT_FOUND",message:"Selectie niet gevonden."})}catch(e){n(e)}});
   app.post("/api/v1/rounds/:roundId/teams",async(q,r,n)=>{if(!q.body||!String(q.body.name||"").trim()||!String(q.body.teamName||"").trim())return r.status(422).json({code:"INVALID_TEAM",message:"Naam en teamnaam zijn verplicht."});try{r.status(201).json(await repository.saveTeam(q.params.roundId,q.body))}catch(e){n(e)}});
-  app.use((e,_q,r,_n)=>{if(e.code==="RUNTIME_CONFLICT")return r.status(409).json({code:e.code,message:e.message});console.error(e);r.status(500).json({code:"INTERNAL_ERROR",message:"Er ging iets mis op de server."})});
+  app.use((e,_q,r,_n)=>{if(e.code==="RUNTIME_CONFLICT")return r.status(409).json({code:e.code,message:e.message});if(e.code==="23505")return r.status(409).json({code:"TEAM_NAME_CONFLICT",message:"Deze combinatie van deelnemersnaam en teamnaam bestaat al."});console.error(e);r.status(500).json({code:"INTERNAL_ERROR",message:"Er ging iets mis op de server."})});
   return app;
 }
