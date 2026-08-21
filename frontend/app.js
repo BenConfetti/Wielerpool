@@ -1122,7 +1122,7 @@ function renderTeamSelectionMatrix() {
             <th>Renner</th>
             <th>BC</th>
             <th>Totaal</th>
-            ${state.teams.map((team) => `<th title="${escapeAttr(displayTeamName(teamKey(team)))}">${escapeHtml(displayTeamName(teamKey(team)))}</th>`).join("")}
+            ${state.teams.map((team) => `<th title="${escapeAttr(displayTeamWithManager(team))}">${escapeHtml(displayTeamWithManager(team))}</th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -2335,7 +2335,7 @@ function renderParticipantTeamsData() {
     const reserves = parseRiderList(team.reserves);
     return `
       <details class="participant-team">
-        <summary>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamName(teamKey(team)))}</summary>
+        <summary>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamWithManager(team))}</summary>
         <div class="participant-grid">
           <div>
             <h4>Starters</h4>
@@ -4478,6 +4478,11 @@ function getTeamByName(teamName) {
 function displayTeamName(teamName) {
   const team = getTeamByName(teamName);
   return team.teamName || team.name || teamName;
+}
+
+function displayTeamWithManager(team) {
+  const teamName = team?.teamName || team?.name || "-";
+  return `${teamName} (ploegleider: ${team?.name || "-"})`;
 }
 
 function kitStyle(team) {
