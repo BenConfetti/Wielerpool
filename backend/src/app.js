@@ -5,7 +5,7 @@ export function createApp(repository, options = {}) {
   const adminPassword = options.adminPassword || "koers";
   const requireAdmin=(q,r,n)=>String(q.get("x-admin-password")||"")===adminPassword?n():r.status(403).json({code:"ADMIN_REQUIRED",message:"Adminrechten vereist."});
   app.use(cors({ origin: true, credentials: true })); app.use(express.json({ limit: "2mb" }));
-  app.get("/api/health", async (_q,r,n)=>{try{await repository.health();r.json({status:"ok",database:"connected",release:"team-storage-v1"})}catch(e){n(e)}});
+  app.get("/api/health", async (_q,r,n)=>{try{await repository.health();r.json({status:"ok",database:"connected",release:"team-admin-v2"})}catch(e){n(e)}});
   app.get("/api/v1/rounds/:roundId", async(q,r,n)=>{try{const x=await repository.getRound(q.params.roundId);x?r.json(x):r.status(404).json({code:"ROUND_NOT_FOUND",message:"Ronde niet gevonden."})}catch(e){n(e)}});
   app.get("/api/v1/rounds/:roundId/participants",async(q,r,n)=>{try{r.json(await repository.listParticipants(q.params.roundId))}catch(e){n(e)}});
   app.get("/api/v1/rounds/:roundId/riders",async(q,r,n)=>{try{r.json(await repository.listRiders(q.params.roundId))}catch(e){n(e)}});
