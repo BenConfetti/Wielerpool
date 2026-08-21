@@ -223,6 +223,26 @@
           <div id="adminOverviewData" class="admin-overview-data">Laden...</div>
         </section>
 
+        <section class="panel">
+          <h2>Mogelijke fouten</h2>
+          <p class="hint">Automatische controles op ontbrekende tijden, imports en handmatige prijsafwijkingen. Vink een melding af zodra je haar hebt gecontroleerd of hersteld; nieuwe of gewijzigde meldingen verschijnen opnieuw.</p>
+          <div id="possibleErrorsData" class="possible-errors-data">Controleren...</div>
+          <details class="admin-collapsible">
+            <summary>Wat testen de vaste rekentests?</summary>
+            <p>De tests controleren het vereiste aantal tijden voor algemeen en jongeren, het wisselmoment van DNS en DNF/OTL/DSQ/OUT, gelijke verdeling van gedeelde prijzen, het weigeren van tekst zoals DNF als tijd en het omrekenen van tijdnotatie naar seconden.</p>
+            <div id="logicTestsData" class="data-table">Tests laden...</div>
+          </details>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Etappeuitslagen handmatig aanpassen</h2>
+            <button id="addStageButton" type="button" class="secondary">Etappe toevoegen</button>
+          </div>
+          <p class="hint">Pas per renner de waarden aan met bijvoorbeeld <code>general=85, points=12, mountain=4, youth=85, winner=1</code>. Gebruik <code>dns=1</code> voor wisselen in dezelfde etappe en <code>dnf=1</code>, <code>otl=1</code>, <code>dsq=1</code> of <code>out=1</code> voor wisselen vanaf de volgende etappe. Klik daarna op Admin opslaan.</p>
+          <div id="stages"></div>
+        </section>
+
         <section class="panel settings">
           <div class="section-heading">
             <h2>Admin</h2>
@@ -282,7 +302,7 @@
               <button id="clearFeedbackButton" type="button" class="secondary">Wis feedback</button>
             </div>
           </div>
-          <p class="hint">In deze testversie staat feedback lokaal in deze browser. In productie kan ditzelfde overzicht vanuit een database/API gevuld worden.</p>
+          <p class="hint">Feedback wordt centraal bij deze ronde opgeslagen en is daardoor ook na een deploy beschikbaar.</p>
           <div id="feedbackList" class="feedback-list">Nog geen feedback.</div>
         </section>
 

@@ -13,6 +13,7 @@ const APP_ASSET_VERSION = "20260816-5";
     window.ROUND_CONFIG = await response.json();
     window.ROUND_ID = window.ROUND_CONFIG.id;
     await loadRoundScript("./storage.js");
+    await loadRoundScript("./game-logic.js");
     await loadRoundScript("./app.js");
   } catch (error) {
     document.body.innerHTML = `<main class="layout"><section class="panel"><h1>Ronde kon niet worden geladen</h1><p>${escapeLoaderText(error.message)}</p><p>Controleer <code>?round=${escapeLoaderText(roundId)}</code>.</p></section></main>`;

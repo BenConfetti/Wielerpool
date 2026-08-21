@@ -1,6 +1,7 @@
 const ROUND_CONFIG = window.ROUND_CONFIG || {};
 const ROUND_SETTINGS = ROUND_CONFIG.settings || {};
 const ROUND_FILES = ROUND_CONFIG.files || {};
+const GAME_LOGIC = window.POOL_GAME_LOGIC;
 const STORAGE_PREFIX = ROUND_CONFIG.storageKeyPrefix || `wielerpool-${ROUND_CONFIG.id || "default"}`;
 const POOL_STORAGE = window.createPoolStorage({
   roundId: ROUND_CONFIG.id,
@@ -78,6 +79,7 @@ let participantAccess = loadParticipantAccess();
 const CLIENT_ID = getOrCreateClientId();
 let runtimeSyncReady = false;
 let runtimeSyncTimer = null;
+let runtimeRevision = 0;
 let storageSyncError = "";
 
 const els = {
@@ -129,6 +131,8 @@ const els = {
   introEditor: document.getElementById("introEditor"),
   prizeWeightEditor: document.getElementById("prizeWeightEditor"),
   adminOverviewData: document.getElementById("adminOverviewData"),
+  possibleErrorsData: document.getElementById("possibleErrorsData"),
+  logicTestsData: document.getElementById("logicTestsData"),
   adminLogData: document.getElementById("adminLogData")
 };
 
@@ -341,6 +345,15 @@ document.getElementById("saveAdminButton")?.addEventListener("click", () => {
   saveAdminChanges();
 });
 
+els.possibleErrorsData?.addEventListener("change", (event) => {
+  const checkbox = event.target.closest("[data-error-acknowledgement]");
+  if (!checkbox) return;
+  state.settings.errorAcknowledgements = state.settings.errorAcknowledgements || {};
+  state.settings.errorAcknowledgements[checkbox.dataset.errorAcknowledgement] = checkbox.checked;
+  persistState();
+  renderPossibleErrors();
+});
+
 document.getElementById("addStageButton")?.addEventListener("click", () => {
   state.stages.push({ name: `Etappe ${state.stages.length + 1}`, results: "" });
   render();
@@ -381,11 +394,11 @@ document.getElementById("exportFeedbackButton")?.addEventListener("click", () =>
 
 document.getElementById("clearFeedbackButton")?.addEventListener("click", () => {
   if (!feedbackItems.length) return;
-  if (!confirm("Alle lokaal opgeslagen feedback wissen?")) return;
+  if (!confirm("Alle centraal opgeslagen feedback wissen?")) return;
   feedbackItems = [];
   persistFeedback();
   renderFeedback();
-  recordAdminLog("Feedback", "Feedback gewist", "Alle lokale feedbackinzendingen gewist.");
+  recordAdminLog("Feedback", "Feedback gewist", "Alle centrale feedbackinzendingen gewist.");
   showFeedbackStatus("Feedback gewist.", "success");
 });
 
@@ -444,7 +457,7 @@ els.chartsData?.addEventListener("click", (event) => {
   if (!action) return;
   state.openCharts = getOpenChartIds();
   const standings = calculateStandings(state);
-  if (action === "all") state.chartTeams = state.teams.map((team) => team.name);
+  if (action === "all") state.chartTeams = state.teams.map(teamKey);
   if (action === "none") state.chartTeams = [];
   if (action === "top5") state.chartTeams = defaultChartTeams(standings);
   renderChartsData();
@@ -606,6 +619,8 @@ function render() {
   renderFeedback();
   renderAdminAccess();
   renderAdminOverview();
+  renderPossibleErrors();
+  renderLogicTests();
   renderAdminLog();
   persistState();
 }
@@ -633,7 +648,6 @@ function migrateState(savedState) {
   nextState.manualSwaps = Array.isArray(nextState.manualSwaps) ? nextState.manualSwaps : [];
   applyTeamColorPalette(nextState);
   if (nextState.dataVersion !== DATA_VERSION) {
-    nextState.stages = [];
     nextState.dataVersion = DATA_VERSION;
   }
   return nextState;
@@ -1031,10 +1045,9 @@ function renderTeams() {
     wrapper.innerHTML = `
       <header class="team-selection-header">
         <div class="team-selection-title">
-          ${renderTeamKit(team.name)}
+          ${renderTeamKit(teamKey(team))}
           <div>
-            <strong>${escapeHtml(displayTeamName(team.name))}</strong>
-            <span class="muted">${escapeHtml(team.name)}</span>
+            <strong>${escapeHtml(`${team.teamName || team.name} (ploegleider: ${team.name})`)}</strong>
           </div>
         </div>
         <div class="team-selection-metrics">
@@ -1109,7 +1122,7 @@ function renderTeamSelectionMatrix() {
             <th>Renner</th>
             <th>BC</th>
             <th>Totaal</th>
-            ${state.teams.map((team) => `<th title="${escapeAttr(displayTeamName(team.name))}">${escapeHtml(displayTeamName(team.name))}</th>`).join("")}
+            ${state.teams.map((team) => `<th title="${escapeAttr(displayTeamName(teamKey(team)))}">${escapeHtml(displayTeamName(teamKey(team)))}</th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -1481,7 +1494,7 @@ function validateAllTeamColors() {
       const color1 = document.querySelector(`[data-team-color1="${index}"]`)?.value || team.color1;
       const color2 = document.querySelector(`[data-team-color2="${index}"]`)?.value || team.color2;
       const result = validateTeamColors(color1, color2);
-      return result.valid ? null : `${displayTeamName(team.name)}: ${result.message}`;
+      return result.valid ? null : `${displayTeamName(teamKey(team))}: ${result.message}`;
     })
     .filter(Boolean);
 }
@@ -1493,7 +1506,7 @@ function validateAllTeamRiders() {
       const active = readSelectedRidersFromDom(index, "rider");
       const reserves = readSelectedRidersFromDom(index, "reserve");
       const result = validateTeamRidersFromLists(active, reserves);
-      return result.valid ? null : `${displayTeamName(team.name)}: ${result.message}`;
+      return result.valid ? null : `${displayTeamName(teamKey(team))}: ${result.message}`;
     })
     .filter(Boolean);
 }
@@ -1592,6 +1605,7 @@ function registerManualTeamChanges(changes) {
     state.manualSwaps.push({
       id: `manual-${Date.now()}-${change.teamIndex}-${state.manualSwaps.length}-${index}`,
       teamIndex: change.teamIndex,
+      teamId: team.id || "",
       teamName: change.teamName,
       afterStage: stage.number,
       stage: stage.label,
@@ -2158,7 +2172,7 @@ function formatWithdrawnRiderTeamUsage(riderName) {
 function addRiderUsage(usages, team, riderListText, riderKey, role) {
   if (!riderListText) return;
   if (!parseRiderList(riderListText).some((rider) => normalizeName(rider.name) === riderKey)) return;
-  usages.push(`${displayTeamName(team.name)} (${role})`);
+  usages.push(`${displayTeamName(teamKey(team))} (${role})`);
 }
 
 async function renderCsvFile(url, target, emptyMessage, options = {}) {
@@ -2217,7 +2231,7 @@ function renderTeamVisuals() {
   const leaderTeams = currentLeaderTeamsByClassification(standings);
   els.teamVisuals.innerHTML = state.teams.map((team) => {
     const active = parseRiderList(team.riders).slice(0, STARTER_COUNT);
-    const jerseys = leaderTeams.get(team.name) || [];
+    const jerseys = leaderTeams.get(teamKey(team)) || [];
     const visualRiders = active
       .map((rider, index) => ({ rider, originalIndex: index, classificationId: jerseys[index] || "" }))
       .sort((a, b) => {
@@ -2228,7 +2242,7 @@ function renderTeamVisuals() {
     return `
       <article class="visual-team">
         <header>
-          ${renderTeamKit(team.name)}
+          ${renderTeamKit(teamKey(team))}
           <strong>${escapeHtml(team.teamName || team.name)}</strong>
         </header>
         <div class="intro-peloton" aria-label="Peloton startteam">
@@ -2321,7 +2335,7 @@ function renderParticipantTeamsData() {
     const reserves = parseRiderList(team.reserves);
     return `
       <details class="participant-team">
-        <summary>${renderTeamKit(team.name)} ${escapeHtml(displayTeamName(team.name))}</summary>
+        <summary>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamName(teamKey(team)))}</summary>
         <div class="participant-grid">
           <div>
             <h4>Starters</h4>
@@ -2387,11 +2401,11 @@ function renderRiderPerformanceData() {
   });
 
   els.riderPerformanceData.innerHTML = state.teams.map((team) => {
-    const rows = [...(statsByTeam.get(team.name) || new Map()).values()]
+    const rows = [...(statsByTeam.get(teamKey(team)) || new Map()).values()]
       .sort((a, b) => b.pointsTotal - a.pointsTotal || b.mountainTotal - a.mountainTotal || formatRiderName(a.rider).localeCompare(formatRiderName(b.rider), "nl"));
     return `
       <details class="rider-performance-team">
-        <summary>${renderTeamKit(team.name)} ${escapeHtml(displayTeamName(team.name))}</summary>
+        <summary>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamName(teamKey(team)))}</summary>
         <table>
           <thead>
             <tr>
@@ -2507,10 +2521,10 @@ function formatRiderPerformanceStatus(row) {
 }
 
 function renderTeamProgress(stageRows, team) {
-  const teamRows = stageRows.filter((entry) => entry.teamName === team.name);
+  const teamRows = stageRows.filter((entry) => entry.teamName === teamKey(team));
   return `
     <article class="progress-team">
-      <h3>${renderTeamKit(team.name)} ${escapeHtml(displayTeamName(team.name))}</h3>
+      <h3>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamName(teamKey(team)))}</h3>
       <div class="progress-classifications">
         ${CLASSIFICATIONS.map((classification) => {
           const entry = teamRows.find((row) => row.classificationId === classification.id);
@@ -2631,8 +2645,8 @@ function renderChartsData() {
         <div class="chart-team-picker">
           ${state.teams.map((team) => `
             <label>
-              <input type="checkbox" data-chart-team="${escapeAttr(team.name)}" ${selectedTeams.includes(team.name) ? "checked" : ""}>
-              ${renderChartColor(team)} ${escapeHtml(displayTeamName(team.name))}
+              <input type="checkbox" data-chart-team="${escapeAttr(teamKey(team))}" ${selectedTeams.includes(teamKey(team)) ? "checked" : ""}>
+              ${renderChartColor(team)} ${escapeHtml(displayTeamName(teamKey(team)))}
             </label>
           `).join("")}
         </div>
@@ -2649,7 +2663,7 @@ function renderPositionChart(history, classification, selectedTeams) {
   const pad = 18;
   const maxRank = Math.max(1, state.teams.length);
   const stages = history.map((snapshot) => snapshot.stage);
-  const visibleTeams = state.teams.filter((team) => selectedTeams.includes(team.name));
+  const visibleTeams = state.teams.filter((team) => selectedTeams.includes(teamKey(team)));
   const xFor = (index) => stages.length === 1 ? pad : pad + (index * (width - pad * 2)) / (stages.length - 1);
   const yFor = (rank) => pad + ((rank - 1) * (height - pad * 2)) / Math.max(maxRank - 1, 1);
   const rankByStage = history.map((snapshot) => {
@@ -2659,14 +2673,14 @@ function renderPositionChart(history, classification, selectedTeams) {
   const lines = visibleTeams.map((team) => {
     const points = rankByStage
       .map((ranks, index) => {
-        const rank = ranks.get(team.name);
+        const rank = ranks.get(teamKey(team));
         return rank ? `${xFor(index)},${yFor(rank)}` : null;
       })
       .filter(Boolean)
       .join(" ");
     if (!points) return "";
     const color = team.color1 || "#0072ce";
-    return `<polyline points="${points}" fill="none" stroke="${escapeAttr(color)}" stroke-width="1.8"><title>${escapeHtml(displayTeamName(team.name))}</title></polyline>`;
+    return `<polyline points="${points}" fill="none" stroke="${escapeAttr(color)}" stroke-width="1.8"><title>${escapeHtml(displayTeamName(teamKey(team)))}</title></polyline>`;
   }).join("");
 
   return `
@@ -2683,7 +2697,7 @@ function renderPositionChart(history, classification, selectedTeams) {
         ${lines}
       </svg>
       <div class="chart-legend">
-        ${visibleTeams.map((team) => `<span>${renderChartColor(team)} ${escapeHtml(displayTeamName(team.name))}</span>`).join("")}
+        ${visibleTeams.map((team) => `<span>${renderChartColor(team)} ${escapeHtml(displayTeamName(teamKey(team)))}</span>`).join("")}
       </div>
     </details>
   `;
@@ -2693,7 +2707,7 @@ function renderMoneyChart(timeline, selectedTeams) {
   const width = 520;
   const height = 150;
   const pad = 18;
-  const visibleTeams = state.teams.filter((team) => selectedTeams.includes(team.name));
+  const visibleTeams = state.teams.filter((team) => selectedTeams.includes(teamKey(team)));
   const maxValue = Math.max(1, ...timeline.flatMap((stage) => stage.rows.map((row) => row.value)));
   const stages = timeline.map((stage) => stage.stage);
   const xFor = (index) => stages.length === 1 ? pad : pad + (index * (width - pad * 2)) / (stages.length - 1);
@@ -2702,13 +2716,13 @@ function renderMoneyChart(timeline, selectedTeams) {
   const lines = visibleTeams.map((team) => {
     const points = moneyByStage
       .map((moneyMap, index) => {
-        const value = moneyMap.get(team.name);
+        const value = moneyMap.get(teamKey(team));
         return Number.isFinite(value) ? `${xFor(index)},${yFor(value)}` : null;
       })
       .filter(Boolean)
       .join(" ");
     if (!points) return "";
-    return `<polyline points="${points}" fill="none" stroke="${escapeAttr(team.color1 || "#0072ce")}" stroke-width="1.8"><title>${escapeHtml(displayTeamName(team.name))}</title></polyline>`;
+    return `<polyline points="${points}" fill="none" stroke="${escapeAttr(team.color1 || "#0072ce")}" stroke-width="1.8"><title>${escapeHtml(displayTeamName(teamKey(team)))}</title></polyline>`;
   }).join("");
 
   return `
@@ -2725,7 +2739,7 @@ function renderMoneyChart(timeline, selectedTeams) {
         ${lines}
       </svg>
       <div class="chart-legend">
-        ${visibleTeams.map((team) => `<span>${renderChartColor(team)} ${escapeHtml(displayTeamName(team.name))}</span>`).join("")}
+        ${visibleTeams.map((team) => `<span>${renderChartColor(team)} ${escapeHtml(displayTeamName(teamKey(team)))}</span>`).join("")}
       </div>
     </details>
   `;
@@ -2739,7 +2753,7 @@ function selectedChartTeams(standings) {
   if (!Array.isArray(state.chartTeams)) {
     state.chartTeams = defaultChartTeams(standings);
   }
-  const existing = new Set(state.teams.map((team) => team.name));
+  const existing = new Set(state.teams.map(teamKey));
   state.chartTeams = state.chartTeams.filter((teamName) => existing.has(teamName));
   return state.chartTeams;
 }
@@ -2770,18 +2784,22 @@ function calculateStandings(currentState) {
   const snapshots = [];
   const rosters = currentState.teams.map((team, index) => ({
     teamIndex: index,
-    teamName: team.name,
+    teamId: team.id || "",
+    participantName: team.name,
+    teamName: teamKey(team),
     active: parseRiderList(getInitialTeamRidersForCalculation(currentState, team, index)),
-    reserves: parseRiderList(getInitialTeamReservesForCalculation(currentState, team, index))
+    reserves: parseRiderList(getInitialTeamReservesForCalculation(currentState, team, index)),
+    pendingWithdrawals: new Map()
   }));
 
   currentState.teams.forEach((team) => {
-    Object.values(totals).forEach((table) => table.set(team.name, 0));
-    Object.values(dayWins).forEach((table) => table.set(team.name, 0));
-    Object.values(details).forEach((table) => table.set(team.name, []));
-    riderStats.set(team.name, new Map());
-    parseRiderList(team.riders).forEach((rider) => initializeRiderStat(riderStats, team.name, rider.name, "starter"));
-    parseRiderList(team.reserves).forEach((rider) => initializeRiderStat(riderStats, team.name, rider.name, "reserve"));
+    const key = teamKey(team);
+    Object.values(totals).forEach((table) => table.set(key, 0));
+    Object.values(dayWins).forEach((table) => table.set(key, 0));
+    Object.values(details).forEach((table) => table.set(key, []));
+    riderStats.set(key, new Map());
+    parseRiderList(team.riders).forEach((rider) => initializeRiderStat(riderStats, key, rider.name, "starter"));
+    parseRiderList(team.reserves).forEach((rider) => initializeRiderStat(riderStats, key, rider.name, "reserve"));
   });
 
   currentState.stages.forEach((stage) => {
@@ -2822,6 +2840,7 @@ function calculateStandings(currentState) {
           addScore(totals[classification.id].get(rosterState.teamName), score, classification)
         );
       });
+      scheduleImportedWithdrawals(rosterState, stageResults, stage.name);
     });
 
     const totalTablesAfterStage = mapToSortedTables(totals);
@@ -2917,7 +2936,7 @@ function scoreTeamForStage(roster, stageResults, classification, stageName) {
 
   const sorted = riderScores.sort((a, b) => classification.mode === "low" ? a.score - b.score : b.score - a.score);
   const used = sorted.slice(0, scoringDepth(classification));
-  if (classification.id === "youth" && used.length < scoringDepth(classification)) {
+  if (GAME_LOGIC.requiresFullScoreCount(classification.id) && used.length < scoringDepth(classification)) {
     return {
       total: Number.POSITIVE_INFINITY,
       rows: used.map((entry) => ({
@@ -2925,7 +2944,7 @@ function scoreTeamForStage(roster, stageResults, classification, stageName) {
         stage: stageName,
         score: entry.score
       })),
-      ineligibleReason: "te weinig renners"
+      ineligibleReason: `te weinig geldige renners (${used.length}/${scoringDepth(classification)})`
     };
   }
   return {
@@ -2940,7 +2959,7 @@ function scoreTeamForStage(roster, stageResults, classification, stageName) {
 }
 
 function scoringDepth(classification) {
-  return classification.id === "youth" ? 3 : 5;
+  return GAME_LOGIC.scoringDepth(classification.id, ROUND_SETTINGS);
 }
 
 function recordRiderActive(riderStats, teamName, riderName) {
@@ -3008,21 +3027,27 @@ function addScore(total, score, classification) {
 }
 
 function getInitialTeamRidersForCalculation(currentState, team, index) {
-  return teamHasManualSwaps(currentState, index) ? (team.initialRiders || team.riders || "") : (team.riders || "");
+  return teamHasManualSwaps(currentState, team, index) ? (team.initialRiders || team.riders || "") : (team.riders || "");
 }
 
 function getInitialTeamReservesForCalculation(currentState, team, index) {
-  return teamHasManualSwaps(currentState, index) ? (team.initialReserves || team.reserves || "") : (team.reserves || "");
+  return teamHasManualSwaps(currentState, team, index) ? (team.initialReserves || team.reserves || "") : (team.reserves || "");
 }
 
-function teamHasManualSwaps(currentState, teamIndex) {
-  return (currentState.manualSwaps || []).some((swap) => Number(swap.teamIndex) === Number(teamIndex));
+function swapMatchesTeam(swap, team, teamIndex) {
+  if (swap.teamId && team?.id) return swap.teamId === team.id;
+  if (swap.teamName && team?.name && normalizeName(swap.teamName) === normalizeName(team.name)) return true;
+  return Number(swap.teamIndex) === Number(teamIndex);
+}
+
+function teamHasManualSwaps(currentState, team, teamIndex) {
+  return (currentState.manualSwaps || []).some((swap) => swapMatchesTeam(swap, team, teamIndex));
 }
 
 function applyManualSwapsBeforeStage(rosterState, currentState, stageName, swapLog, appliedManualSwaps) {
   const stageNumber = getStageNumber(stageName);
   const swaps = (currentState.manualSwaps || [])
-    .filter((swap) => Number(swap.teamIndex) === Number(rosterState.teamIndex))
+    .filter((swap) => swapMatchesTeam(swap, { id: rosterState.teamId, name: rosterState.participantName }, rosterState.teamIndex))
     .filter((swap) => !appliedManualSwaps.has(swap.id))
     .filter((swap) => stageNumber > Number(swap.afterStage || 0))
     .sort((a, b) => Number(a.afterStage || 0) - Number(b.afterStage || 0));
@@ -3038,7 +3063,9 @@ function applyManualSwapsBeforeStage(rosterState, currentState, stageName, swapL
 function appendPendingManualSwapRows(currentState, swapLog, appliedManualSwaps) {
   (currentState.manualSwaps || []).forEach((swap) => {
     if (appliedManualSwaps.has(swap.id)) return;
-    const team = currentState.teams[Number(swap.teamIndex)];
+    const team = swap.teamId
+      ? currentState.teams.find((item) => item.id === swap.teamId)
+      : currentState.teams[Number(swap.teamIndex)];
     getManualSwapRows(swap, team?.name || swap.teamName).forEach((row) => swapLog.push(row));
   });
 }
@@ -3074,8 +3101,12 @@ function markWithdrawnReserves(rosterState, stageResults, stageName, riderStats)
 
 function replaceWithdrawnRiders(rosterState, stageResults, stageName, swapLog, riderStats) {
   rosterState.active = rosterState.active.map((rider) => {
-    const withdrawal = getWithdrawalInfo(rider.name, stageResults, stageName, "Startrenner");
+    const scheduled = rosterState.pendingWithdrawals.get(normalizeName(rider.name));
+    const withdrawal = scheduled && getStageNumber(stageName) >= scheduled.effectiveStage
+      ? { withdrawn: true, code: scheduled.code, reason: scheduled.reason }
+      : getWithdrawalInfo(rider.name, stageResults, stageName, "Startrenner");
     if (!withdrawal.withdrawn) return rider;
+    rosterState.pendingWithdrawals.delete(normalizeName(rider.name));
     const replacement = nextAvailableReserve(rosterState, stageResults, stageName, riderStats);
     if (!replacement) {
       swapLog.push({
@@ -3102,10 +3133,29 @@ function replaceWithdrawnRiders(rosterState, stageResults, stageName, swapLog, r
   });
 }
 
+function scheduleImportedWithdrawals(rosterState, stageResults, stageName) {
+  const stageNumber = getStageNumber(stageName);
+  [...rosterState.active, ...rosterState.reserves].forEach((rider) => {
+    const result = findRiderResult(stageResults, rider.name);
+    if (!result?.withdrawn) return;
+    const code = String(result.withdrawalCode || "DNF").toUpperCase();
+    const effectiveStage = GAME_LOGIC.withdrawalEffectiveStage(code, stageNumber);
+    if (effectiveStage <= stageNumber) return;
+    rosterState.pendingWithdrawals.set(normalizeName(rider.name), {
+      code,
+      effectiveStage,
+      reason: `Startrenner ${code} in etappe ${stageNumber}`
+    });
+  });
+}
+
 function nextAvailableReserve(rosterState, stageResults, stageName, riderStats) {
   for (let index = 0; index < rosterState.reserves.length; index += 1) {
     const candidate = rosterState.reserves[index];
-    const withdrawal = getWithdrawalInfo(candidate.name, stageResults, stageName, "Reserve");
+    const scheduled = rosterState.pendingWithdrawals.get(normalizeName(candidate.name));
+    const withdrawal = scheduled && getStageNumber(stageName) >= scheduled.effectiveStage
+      ? { withdrawn: true, code: scheduled.code, reason: scheduled.reason }
+      : getWithdrawalInfo(candidate.name, stageResults, stageName, "Reserve");
     if (withdrawal.withdrawn) {
       const stat = ensureRiderStat(riderStats, rosterState.teamName, candidate.name);
       if (!stat.reserveWithdrawnStage) {
@@ -3125,10 +3175,13 @@ function getWithdrawalInfo(riderName, stageResults, stageName, roleLabel = "Renn
   const status = getStartlistStatus(riderName);
   const result = findRiderResult(stageResults, riderName);
   if (result?.withdrawn) {
+    const code = String(result.withdrawalCode || "DNF").toUpperCase();
+    const effectiveStage = GAME_LOGIC.withdrawalEffectiveStage(code, stageNumber);
     return {
-      withdrawn: true,
-      code: status && Number(status.stage) === stageNumber ? status.code : "DNF",
-      reason: `${roleLabel} uitgevallen volgens etappedata`
+      withdrawn: stageNumber >= effectiveStage,
+      code,
+      effectiveStage,
+      reason: `${roleLabel} ${code} volgens etappedata`
     };
   }
   if (status && Number.isFinite(status.effectiveStage) && stageNumber >= status.effectiveStage) {
@@ -3155,7 +3208,7 @@ function getStartlistStatus(riderName) {
 }
 
 function calculateMoney(standings, currentState) {
-  const teams = currentState.teams.map((team) => team.name);
+  const teams = currentState.teams.map(teamKey);
   const money = new Map(teams.map((team) => [team, 0]));
   const details = new Map(teams.map((team) => [team, []]));
   const pot = teams.length * Number(currentState.settings.stake || 0);
@@ -3184,6 +3237,8 @@ function calculateMoney(standings, currentState) {
     stageWinner: dayWeight ? (dayPot * (Number(prizeWeights.daily.stageWinner || 0) / dayWeight)) / stageCount : 0
   };
   let reservedStageWinnerMoney = 0;
+  let reservedDailyMoney = 0;
+  const loadedStageNames = currentState.stages.filter((stage) => stage.results.trim()).map((stage) => stage.name);
 
   CLASSIFICATIONS.forEach((classification) => {
     if (classification.id === "general") {
@@ -3217,10 +3272,10 @@ function calculateMoney(standings, currentState) {
     }
 
     const dayPrize = prizeBreakdown.daily.find((item) => item.classificationId === classification.id)?.amount || 0;
-    standings.dayWinDetails
-      .filter((entry) => entry.classificationId === classification.id)
+    const classificationDayEntries = standings.dayWinDetails.filter((entry) => entry.classificationId === classification.id);
+    classificationDayEntries
       .forEach((entry) => {
-        const share = dayPrize / (entry.shareCount || 1);
+        const share = GAME_LOGIC.splitPrize(dayPrize, entry.shareCount || 1);
         ensureMoneyTeam(money, details, entry.teamName);
         money.set(entry.teamName, money.get(entry.teamName) + share);
         details.get(entry.teamName).push({
@@ -3231,16 +3286,19 @@ function calculateMoney(standings, currentState) {
           note: `${entry.shareCount > 1 ? "Gedeelde leiderstrui" : "Leiderstrui"} na ${entry.stage} met score ${formatClassificationScore(entry.score, classification)}${entry.shareCount > 1 ? `; gedeeld met ${entry.sharedWith.map(displayTeamName).join(", ")}` : ""}`
         });
       });
+    loadedStageNames.forEach((stageName) => {
+      if (!classificationDayEntries.some((entry) => entry.stage === stageName)) reservedDailyMoney += dayPrize;
+    });
   });
 
   const stageWinnerPrize = prizeBreakdown.stageWinner;
-  const finalStageWinner = standings.stageWinners.find((entry) => getStageNumber(entry.stage) === stageCount && entry.teams.length > 0);
+  const finalStageWinner = standings.stageWinners.find((entry) => getStageNumber(entry.stage) === stageCount);
   standings.stageWinners.forEach((stageWinner) => {
     if (stageWinner.teams.length === 0) {
       reservedStageWinnerMoney += stageWinnerPrize;
       return;
     }
-    const share = stageWinnerPrize / stageWinner.teams.length;
+    const share = GAME_LOGIC.splitPrize(stageWinnerPrize, stageWinner.teams.length);
     stageWinner.teams.forEach((teamName) => {
       ensureMoneyTeam(money, details, teamName);
       money.set(teamName, money.get(teamName) + share);
@@ -3253,9 +3311,13 @@ function calculateMoney(standings, currentState) {
       });
     });
   });
-  if (finalStageWinner && reservedStageWinnerMoney > 0) {
-    const share = reservedStageWinnerMoney / finalStageWinner.teams.length;
-    finalStageWinner.teams.forEach((teamName) => {
+  const rolloverMoney = reservedStageWinnerMoney + reservedDailyMoney;
+  const rolloverRecipients = finalStageWinner?.teams.length
+    ? finalStageWinner.teams
+    : (finalStageWinner ? getTiedLeaders(standings.total.general || [], CLASSIFICATIONS[0]).map((row) => row.name) : []);
+  if (rolloverRecipients.length && rolloverMoney > 0) {
+    const share = GAME_LOGIC.splitPrize(rolloverMoney, rolloverRecipients.length);
+    rolloverRecipients.forEach((teamName) => {
       ensureMoneyTeam(money, details, teamName);
       money.set(teamName, money.get(teamName) + share);
       details.get(teamName).push({
@@ -3263,10 +3325,13 @@ function calculateMoney(standings, currentState) {
         source: "Opgespaarde etappewinnaarspot",
         classificationId: "stage-winner",
         amount: share,
-        note: `Niet-uitgekeerde etappewinnaarspotten naar winnaar laatste etappe: ${finalStageWinner.riders.map(formatRiderName).join(", ")}${finalStageWinner.teams.length > 1 ? `; gedeeld met ${finalStageWinner.teams.map(displayTeamName).join(", ")}` : ""}`
+        note: finalStageWinner?.teams.length
+          ? `Niet-uitgekeerde dagprijzen naar teams met de winnaar van de laatste etappe${rolloverRecipients.length > 1 ? `; gedeeld met ${rolloverRecipients.map(displayTeamName).join(", ")}` : ""}`
+          : `Niemand had de winnaar van de laatste etappe; doorgeschoven naar ${rolloverRecipients.length > 1 ? "de gedeelde winnaars" : "de winnaar"} van het algemeen klassement`
       });
     });
     reservedStageWinnerMoney = 0;
+    reservedDailyMoney = 0;
   }
 
   const rows = [...money.entries()]
@@ -3287,7 +3352,7 @@ function calculateMoney(standings, currentState) {
   const dayMoneyPerStage = dayPot / stageCount;
   const remainingStageMoney = Math.max(stageCount - loadedStageCount, 0) * dayMoneyPerStage;
   const remainingFinalMoney = finalPotUnlocked ? 0 : finalPot;
-  const accountedMoney = assignedMoney + reservedStageWinnerMoney + remainingStageMoney + remainingFinalMoney;
+  const accountedMoney = assignedMoney + reservedStageWinnerMoney + reservedDailyMoney + remainingStageMoney + remainingFinalMoney;
 
   return {
     rows: rowsWithDelta,
@@ -3299,6 +3364,7 @@ function calculateMoney(standings, currentState) {
     remainingFinalMoney,
     accountedMoney,
     reservedStageWinnerMoney,
+    reservedDailyMoney,
     stageWinnerPrize,
     prizeBreakdown
   };
@@ -3370,7 +3436,7 @@ function getPrizeGroupsForPlaces(rows, places) {
 }
 
 function calculateMoneyTimeline(standings, currentState) {
-  const teams = currentState.teams.map((team) => team.name);
+  const teams = currentState.teams.map(teamKey);
   const money = new Map(teams.map((team) => [team, 0]));
   const pot = teams.length * Number(currentState.settings.stake || 0);
   const dayPot = pot * (getPrizePotSplit(currentState).daily / 100);
@@ -3380,26 +3446,38 @@ function calculateMoneyTimeline(standings, currentState) {
   const stageCount = Number(currentState.settings.stageCount || 1);
   const stageWinnerPrize = dayWeight ? (dayPot * (Number(prizeWeights.daily.stageWinner || 0) / dayWeight)) / stageCount : 0;
   const timeline = [];
+  let reservedRolloverMoney = 0;
 
   currentState.stages
     .filter((stage) => stage.results.trim())
     .forEach((stage) => {
       CLASSIFICATIONS.forEach((classification) => {
         const dayPrize = dayWeight ? (dayPot * (Number(prizeWeights.daily[classification.id] || 0) / dayWeight)) / stageCount : 0;
-        standings.dayWinDetails
-          .filter((entry) => entry.stage === stage.name && entry.classificationId === classification.id)
+        const entries = standings.dayWinDetails.filter((entry) => entry.stage === stage.name && entry.classificationId === classification.id);
+        if (!entries.length) reservedRolloverMoney += dayPrize;
+        entries
           .forEach((entry) => {
-            const share = dayPrize / (entry.shareCount || 1);
+            const share = GAME_LOGIC.splitPrize(dayPrize, entry.shareCount || 1);
             money.set(entry.teamName, money.get(entry.teamName) + share);
           });
       });
 
       const stageWinner = standings.stageWinners.find((entry) => entry.stage === stage.name);
       if (stageWinner?.teams.length) {
-        const share = stageWinnerPrize / stageWinner.teams.length;
+        const share = GAME_LOGIC.splitPrize(stageWinnerPrize, stageWinner.teams.length);
         stageWinner.teams.forEach((teamName) => {
           money.set(teamName, money.get(teamName) + share);
         });
+      } else {
+        reservedRolloverMoney += stageWinnerPrize;
+      }
+      if (getStageNumber(stage.name) === stageCount && reservedRolloverMoney > 0) {
+        const recipients = stageWinner?.teams.length
+          ? stageWinner.teams
+          : getTiedLeaders(standings.total.general || [], CLASSIFICATIONS[0]).map((row) => row.name);
+        const share = GAME_LOGIC.splitPrize(reservedRolloverMoney, recipients.length);
+        recipients.forEach((teamName) => money.set(teamName, money.get(teamName) + share));
+        if (recipients.length) reservedRolloverMoney = 0;
       }
 
       timeline.push({
@@ -3826,8 +3904,9 @@ function parseStageResults(value) {
       scores.name = rawName;
       pairs.forEach((pair) => {
         const [key, rawValue] = pair.split("=").map((part) => part.trim());
-        if (["out", "dnf", "dns"].includes(key) && ["1", "true", "ja", "yes"].includes(String(rawValue).toLowerCase())) {
+        if (["out", "dnf", "dns", "otl", "dsq"].includes(key) && ["1", "true", "ja", "yes"].includes(String(rawValue).toLowerCase())) {
           scores.withdrawn = true;
+          scores.withdrawalCode = key.toUpperCase();
           return;
         }
         if (key === "winner" && ["1", "true", "ja", "yes"].includes(String(rawValue).toLowerCase())) {
@@ -3866,7 +3945,7 @@ function formatStageResults(results) {
       }
     });
     if (scores.winner) pairs.push("winner=1");
-    if (scores.withdrawn) pairs.push("dnf=1");
+    if (scores.withdrawn) pairs.push(`${String(scores.withdrawalCode || "DNF").toLowerCase()}=1`);
     return `${scores.name}, ${pairs.join(", ")}`;
   }).join("\n");
 }
@@ -3936,7 +4015,7 @@ function renderClassificationDetailControls(classification, mode, selectedTeam, 
       <label class="${mode === "team" ? "" : "is-hidden"}">
         Deelnemer
         <select data-classification-detail-control data-detail-progress-team>
-          ${state.teams.map((team) => `<option value="${escapeAttr(team.name)}" ${team.name === selectedTeam ? "selected" : ""}>${escapeHtml(displayTeamName(team.name))}</option>`).join("")}
+          ${state.teams.map((team) => `<option value="${escapeAttr(teamKey(team))}" ${teamKey(team) === selectedTeam ? "selected" : ""}>${escapeHtml(displayTeamName(teamKey(team)))}</option>`).join("")}
         </select>
       </label>
       <label class="${mode === "stage" ? "" : "is-hidden"}">
@@ -3992,10 +4071,10 @@ function renderClassificationStageDetail(classification, standings, stageName) {
   return `
     <div class="progress-stage-grid classification-progress-detail-stage">
       ${state.teams.map((team) => {
-        const entry = rows.find((row) => row.teamName === team.name);
+        const entry = rows.find((row) => row.teamName === teamKey(team));
         return `
           <article class="progress-team">
-            <h3>${renderTeamKit(team.name)} ${escapeHtml(displayTeamName(team.name))}</h3>
+            <h3>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamName(teamKey(team)))}</h3>
             ${renderClassificationProgress(entry, classification)}
           </article>
         `;
@@ -4184,6 +4263,11 @@ function parseCsvScoreRow(row, headerIndex, hasHeader, rowIndex) {
     if (index < 0 || index == null) return;
     const score = parseScoreCell(row[index], classification.mode);
     if (Number.isFinite(score)) scores[classification.id] = score;
+    else if (String(row[index] ?? "").trim()) recordImportWarning(
+      "Ongeldige uitslagwaarde",
+      `${name}: '${String(row[index]).trim()}' is geen geldige waarde voor ${classification.label} en is niet als 0 ingelezen.`,
+      `${name}-${classification.id}-${row[index]}`
+    );
   });
 
   const winnerIndex = mapping.winner;
@@ -4196,6 +4280,7 @@ function parseCsvScoreRow(row, headerIndex, hasHeader, rowIndex) {
   const withdrawnIndex = mapping.withdrawn;
   if (withdrawnIndex >= 0 && isTruthyCell(row[withdrawnIndex])) {
     scores.withdrawn = true;
+    scores.withdrawalCode = "DNF";
   }
 
   return { name, scores };
@@ -4204,11 +4289,7 @@ function parseCsvScoreRow(row, headerIndex, hasHeader, rowIndex) {
 function parseScoreCell(value, mode) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
-  if (raw.includes(":")) return parseTimeToSeconds(raw.replace(/^\+/, ""));
-  const cleaned = raw.replace(/^\+/, "").replace(",", ".");
-  const number = Number(cleaned);
-  if (Number.isFinite(number)) return number;
-  return mode === "low" ? 0 : null;
+  return GAME_LOGIC.parseTimeValue(raw);
 }
 
 function normalizeHeader(value) {
@@ -4249,7 +4330,7 @@ function importStageCsv(value) {
       }
     });
     if (scores.winner) pairs.push("winner=1");
-    if (scores.withdrawn) pairs.push("dnf=1");
+    if (scores.withdrawn) pairs.push(`${String(scores.withdrawalCode || "DNF").toLowerCase()}=1`);
     return `${name}, ${pairs.join(", ")}`;
   }).join("\n");
 }
@@ -4278,7 +4359,14 @@ function parseHtmlClassification(html, classificationId, isTimeResult) {
     const name = extractRiderName(text);
     if (!name) return null;
     const score = isTimeResult ? extractTimeGap(text, validIndex) : extractLastInteger(text);
-    if (!Number.isFinite(score)) return null;
+    if (!Number.isFinite(score)) {
+      recordImportWarning(
+        "HTML-import zonder tijd",
+        `${name}: geen herkenbaar tijdsverschil gevonden voor ${classificationId}; de renner is niet met 0 seconden ingeladen.`,
+        `${classificationId}-${name}-${text}`
+      );
+      return null;
+    }
     const isWinner = classificationId === "general" && validIndex === 0;
     validIndex += 1;
     return {
@@ -4300,7 +4388,7 @@ function extractRiderName(rowText) {
 function extractTimeGap(rowText, rowIndex) {
   if (rowIndex === 0) return 0;
   const plus = rowText.match(/\+(\d{1,2}:\d{2}(?::\d{2})?|\d+)/);
-  if (!plus) return 0;
+  if (!plus) return null;
   return parseTimeToSeconds(plus[1]);
 }
 
@@ -4377,8 +4465,14 @@ function titleCaseName(value) {
     .replace(/\bDel\b/g, "del");
 }
 
+function teamKey(team) {
+  return GAME_LOGIC.teamKey(team);
+}
+
 function getTeamByName(teamName) {
-  return state.teams.find((team) => team.name === teamName) || {};
+  return state.teams.find((team) => teamKey(team) === teamName)
+    || state.teams.find((team) => team.name === teamName)
+    || {};
 }
 
 function displayTeamName(teamName) {
@@ -4513,14 +4607,14 @@ function escapeAttr(value) {
   return escapeHtml(value).replaceAll('"', "&quot;");
 }
 
-function submitFeedback() {
+async function submitFeedback() {
   const message = els.feedbackMessage?.value.trim() || "";
   const subject = els.feedbackSubject?.value.trim() || "";
   if (!message) {
     showFeedbackStatus("Niet opgeslagen: vul feedback in.", "error");
     return;
   }
-  feedbackItems.unshift({
+  const item = {
     id: `feedback-${Date.now()}`,
     createdAt: new Date().toISOString(),
     name: els.feedbackName?.value.trim() || "",
@@ -4528,7 +4622,17 @@ function submitFeedback() {
     type: els.feedbackType?.value || "Feedback",
     subject: subject || "(geen onderwerp)",
     message
-  });
+  };
+  if (POOL_STORAGE.mode === "api") {
+    try {
+      const saved = await POOL_STORAGE.api.submitFeedback(item);
+      runtimeRevision = Number(saved?.revision || runtimeRevision);
+    } catch (error) {
+      showFeedbackStatus("Feedback kon niet online worden opgeslagen. Probeer het opnieuw.", "error");
+      return;
+    }
+  }
+  feedbackItems.unshift(item);
   persistFeedback();
   els.feedbackSubject.value = "";
   els.feedbackMessage.value = "";
@@ -4563,7 +4667,7 @@ function renderFeedbackTeamOptions() {
   els.feedbackTeam.innerHTML = `
     <option value="">Geen team gekozen</option>
     ${state.teams.map((team) => {
-      const name = displayTeamName(team.name);
+      const name = displayTeamName(teamKey(team));
       return `<option value="${escapeAttr(name)}" ${name === selected ? "selected" : ""}>${escapeHtml(name)}</option>`;
     }).join("")}
   `;
@@ -4628,6 +4732,7 @@ function unlockAdmin() {
   adminUnlocked = true;
   sessionStorage.setItem(`${STORAGE_PREFIX}-admin-unlocked`, "1");
   recordAdminLog("Admin", "Admin geopend", "Adminpaneel geopend in deze browsersessie.");
+  queueRuntimeSync();
   renderAdminAccess();
   renderAdminLog();
 }
@@ -4814,9 +4919,25 @@ async function saveAccessibleTeamToApi() {
   if (POOL_STORAGE.mode !== "api") return;
   const team = state.teams.find((item) => participantMatches(item));
   if (!team) throw new Error("Geen actieve selectie.");
-  const saved = await POOL_STORAGE.api.saveTeamSelection(team);
+  const teamIndex = state.teams.indexOf(team);
+  const saved = await POOL_STORAGE.api.saveTeamSelection({
+    ...team,
+    manualSwaps: (state.manualSwaps || []).filter((swap) => swapMatchesTeam(swap, team, teamIndex))
+  });
   Object.assign(team, saved);
+  mergeRemoteManualSwaps([saved]);
   persistState();
+}
+
+function mergeRemoteManualSwaps(remoteTeams) {
+  const remoteTeamIds = new Set(remoteTeams.map((team) => String(team.id || "")).filter(Boolean));
+  const retained = (state.manualSwaps || []).filter((swap) => !swap.teamId || !remoteTeamIds.has(String(swap.teamId)));
+  const received = remoteTeams.flatMap((team) => (team.manualSwaps || []).map((swap) => ({
+    ...swap,
+    teamId: team.id || swap.teamId || "",
+    teamName: swap.teamName || team.name
+  })));
+  state.manualSwaps = [...new Map([...retained, ...received].map((swap) => [swap.id, swap])).values()];
 }
 
 async function syncTeamsFromApi() {
@@ -4837,6 +4958,7 @@ async function syncTeamsFromApi() {
       localStorage.setItem(migrationKey, "1");
       if (missingTeams.length) remoteTeams = await POOL_STORAGE.api.listTeams();
     }
+    mergeRemoteManualSwaps(remoteTeams);
     state.teams = remoteTeams;
     storageSyncError = "";
     persistState();
@@ -4848,19 +4970,71 @@ async function syncTeamsFromApi() {
   }
 }
 
+function renderPossibleErrors() {
+  if (!els.possibleErrorsData) return;
+  const issues = [...(state.importWarnings || [])];
+  GAME_LOGIC.selfTest().filter((result) => !result.passed).forEach((result) => issues.push({
+    id: `logic-test-${normalizeName(result.name)}`,
+    category: "Mislukte rekentest",
+    message: `${result.name} is mislukt. Controleer de spelberekening voordat je verdergaat.`
+  }));
+  Object.entries(state.settings.bcPrices || {}).forEach(([rider, price]) => issues.push({
+    id: `manual-price-${rider}-${price}`,
+    category: "Handmatige BC-prijs",
+    message: `${findRiderDisplayName(rider)} heeft een handmatige prijs van ${formatNumber(Number(price))} BC. Een nieuwe priceVersion overschrijft deze aanpassing.`
+  }));
+  if (state.stages.some((stage) => stage.results?.trim()) && state.teams.length) {
+    const standings = calculateStandings(state);
+    standings.progress.filter((entry) => entry.ineligibleReason).forEach((entry) => issues.push({
+      id: `score-${normalizeName(entry.teamName)}-${getStageNumber(entry.stage)}-${entry.classificationId}-${entry.ineligibleReason}`,
+      category: "Onvolledige score",
+      message: `${displayTeamName(entry.teamName)} – ${entry.stage} – ${entry.classificationLabel}: ${entry.ineligibleReason}.`
+    }));
+    const money = calculateMoney(standings, state);
+    if (Math.abs(money.accountedMoney - money.pot) > 0.005) issues.push({
+      id: `prize-pot-${money.accountedMoney}-${money.pot}`,
+      category: "Prijzenpot klopt niet",
+      message: `De berekening verantwoordt ${formatMoney(money.accountedMoney)}, terwijl de prijzenpot ${formatMoney(money.pot)} is.`
+    });
+  }
+  const unique = [...new Map(issues.map((issue) => [issue.id, issue])).values()];
+  const acknowledgements = state.settings.errorAcknowledgements || {};
+  if (!unique.length) {
+    els.possibleErrorsData.innerHTML = '<p class="save-status save-status-success">Geen mogelijke fouten gevonden.</p>';
+    return;
+  }
+  els.possibleErrorsData.innerHTML = `<div class="possible-errors-list">${unique.map((issue) => {
+    const checked = Boolean(acknowledgements[issue.id]);
+    return `<label class="possible-error ${checked ? "possible-error-handled" : ""}"><input type="checkbox" data-error-acknowledgement="${escapeAttr(issue.id)}" ${checked ? "checked" : ""}><span><strong>${escapeHtml(issue.category || "Controle")}</strong><br>${escapeHtml(issue.message)}</span></label>`;
+  }).join("")}</div>`;
+}
+
+function renderLogicTests() {
+  if (!els.logicTestsData) return;
+  els.logicTestsData.innerHTML = renderDataTable([
+    ["TEST", "STATUS"],
+    ...GAME_LOGIC.selfTest().map((result) => [result.name, result.passed ? "Geslaagd" : "MISLUKT"])
+  ]);
+}
+
+function recordImportWarning(category, message, identity) {
+  state.importWarnings = Array.isArray(state.importWarnings) ? state.importWarnings : [];
+  const id = `import-${normalizeName(`${identity}-${message}`)}`;
+  if (!state.importWarnings.some((warning) => warning.id === id)) state.importWarnings.push({ id, category, message });
+}
+
 async function syncRuntimeFromApi() {
   if (POOL_STORAGE.mode !== "api") return false;
   try {
     const remote = await POOL_STORAGE.api.getRuntimeState();
     if (remote?.state && Object.keys(remote.state).length) {
+      runtimeRevision = Number(remote.revision || 0);
       state = migrateState({ ...remote.state, teams: state.teams });
       feedbackItems = Array.isArray(remote.feedback) ? remote.feedback : [];
       adminLogItems = Array.isArray(remote.adminLog) ? remote.adminLog : [];
       POOL_STORAGE.saveState(state);
       POOL_STORAGE.saveFeedback(feedbackItems);
       POOL_STORAGE.saveAdminLog(adminLogItems);
-    } else if (hasMeaningfulLocalRuntimeData()) {
-      await saveRuntimeSnapshot();
     }
     return true;
   } catch (error) {
@@ -4901,7 +5075,7 @@ async function syncClientStateFromApi() {
 }
 
 function queueRuntimeSync() {
-  if (POOL_STORAGE.mode !== "api" || !runtimeSyncReady) return;
+  if (POOL_STORAGE.mode !== "api" || !runtimeSyncReady || !adminUnlocked) return;
   clearTimeout(runtimeSyncTimer);
   runtimeSyncTimer = setTimeout(saveRuntimeSnapshot, 300);
 }
@@ -4910,8 +5084,17 @@ async function saveRuntimeSnapshot() {
   const runtimeState = structuredClone(state);
   delete runtimeState.teams;
   try {
-    await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, feedback: feedbackItems, adminLog: adminLogItems });
+    const saved = await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, feedback: feedbackItems, adminLog: adminLogItems, revision: runtimeRevision }, ADMIN_PASSWORD);
+    runtimeRevision = Number(saved?.revision || runtimeRevision + 1);
   } catch (error) {
+    if (error.status === 409) {
+      runtimeSyncReady = false;
+      await syncRuntimeFromApi();
+      runtimeSyncReady = true;
+      render();
+      showAdminSaveStatus("Niet opgeslagen: de online ronde was intussen gewijzigd en is opnieuw geladen.", "error");
+      return;
+    }
     console.warn("Online rondegegevens konden niet worden opgeslagen; de lokale kopie is behouden.", error);
   }
 }

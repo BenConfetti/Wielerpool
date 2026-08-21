@@ -298,6 +298,35 @@ button.secondary {
   min-width: 0;
 }
 
+.possible-errors-list {
+  display: grid;
+  gap: 5px;
+}
+
+.possible-error {
+  align-items: flex-start;
+  background: #fff4f4;
+  border: 1px solid #e5a2a2;
+  display: flex;
+  gap: 7px;
+  padding: 6px;
+}
+
+.possible-error input {
+  margin-top: 2px;
+  width: auto;
+}
+
+.possible-error-handled {
+  background: #f3f4f6;
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.possible-error-handled span {
+  text-decoration: line-through;
+}
+
 .exchange-window-editor table {
   table-layout: fixed;
 }

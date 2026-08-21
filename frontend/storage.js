@@ -59,7 +59,8 @@
         ,listTeams: () => request("/rounds/" + encodeURIComponent(roundId) + "/teams")
         ,saveTeamSelection: (team) => send("/rounds/" + encodeURIComponent(roundId) + "/teams", team)
         ,getRuntimeState: () => request("/rounds/" + encodeURIComponent(roundId) + "/runtime-state")
-        ,saveRuntimeState: (payload) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state", payload, "PUT")
+        ,saveRuntimeState: (payload, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state", payload, "PUT", { "X-Admin-Password": adminPassword })
+        ,submitFeedback: (item) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/feedback", item)
         ,getClientState: (clientId) => request("/rounds/" + encodeURIComponent(roundId) + "/client-state/" + encodeURIComponent(clientId))
         ,saveClientState: (clientId, payload) => send("/rounds/" + encodeURIComponent(roundId) + "/client-state/" + encodeURIComponent(clientId), payload, "PUT")
       }),
@@ -72,14 +73,18 @@
       return response.json();
     }
 
-    async function send(path, body, method = "POST") {
+    async function send(path, body, method = "POST", extraHeaders = {}) {
       const response = await fetch(apiBase + path, {
         method,
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...extraHeaders },
         body: JSON.stringify(body)
       });
-      if (!response.ok) throw new Error("API-fout " + response.status);
+      if (!response.ok) {
+        const error = new Error("API-fout " + response.status);
+        error.status = response.status;
+        throw error;
+      }
       return response.json();
     }
   }
