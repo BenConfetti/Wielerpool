@@ -15,6 +15,10 @@ test("gelijke deelnemersnamen houden afzonderlijke teams", () => {
     logic.teamKey({ id: "team-a", name: "Deelnemer", teamName: "Ploeg A" }),
     logic.teamKey({ id: "team-b", name: "Deelnemer", teamName: "Ploeg B" })
   );
+  assert.equal(
+    logic.teamKey({ id: "team-a", name: "Oude naam", teamName: "Oude ploeg" }),
+    logic.teamKey({ id: "team-a", name: "Nieuwe naam", teamName: "Nieuwe ploeg" })
+  );
 });
 
 test("ongeldige tijden worden nooit nul", () => {

@@ -35,10 +35,17 @@ export const repository={
   const client=await pool.connect();
   try{
    await client.query("BEGIN");
-   const participant=await client.query(
-    "INSERT INTO participants(round_id,display_name,team_name,color_primary,color_secondary) VALUES($1,btrim($2),btrim($3),$4,$5) ON CONFLICT (round_id,lower(btrim(display_name)),lower(btrim(team_name))) DO UPDATE SET display_name=EXCLUDED.display_name,team_name=EXCLUDED.team_name,color_primary=EXCLUDED.color_primary,color_secondary=EXCLUDED.color_secondary RETURNING id",
-    [roundId,team.name,team.teamName,team.color1||"#1d4ed8",team.color2||"#ffffff"]
-   );
+   const previous=team.id
+    ? await client.query(teamSelect+" WHERE t.round_id=$1 AND t.id=$2",[roundId,team.id])
+    : await client.query(teamSelect+" WHERE t.round_id=$1 AND lower(btrim(p.display_name))=lower(btrim($2)) AND lower(btrim(p.team_name))=lower(btrim($3))",[roundId,team.name,team.teamName]);
+   const previousTeam=mapTeam(previous.rows[0]);
+   const existingTeamId=team.id||previousTeam?.id;
+   const participant=previousTeam
+    ? await client.query("UPDATE participants p SET display_name=btrim($3),team_name=btrim($4),color_primary=$5,color_secondary=$6 FROM teams t WHERE t.id=$2 AND t.round_id=$1 AND t.participant_id=p.id RETURNING p.id",[roundId,existingTeamId,team.name,team.teamName,team.color1||"#1d4ed8",team.color2||"#ffffff"])
+    : await client.query(
+      "INSERT INTO participants(round_id,display_name,team_name,color_primary,color_secondary) VALUES($1,btrim($2),btrim($3),$4,$5) ON CONFLICT (round_id,lower(btrim(display_name)),lower(btrim(team_name))) DO UPDATE SET display_name=EXCLUDED.display_name,team_name=EXCLUDED.team_name,color_primary=EXCLUDED.color_primary,color_secondary=EXCLUDED.color_secondary RETURNING id",
+      [roundId,team.name,team.teamName,team.color1||"#1d4ed8",team.color2||"#ffffff"]
+     );
    const selection={
     riders:String(team.riders||""),
     reserves:String(team.reserves||""),
@@ -50,6 +57,14 @@ export const repository={
     "INSERT INTO teams(round_id,participant_id,selection) VALUES($1,$2,$3) ON CONFLICT(round_id,participant_id) DO UPDATE SET selection=EXCLUDED.selection,version=teams.version+1,updated_at=now() RETURNING id",
     [roundId,participant.rows[0].id,selection]
    );
+   const now=new Date().toISOString();
+   const changes=[];
+   if(!previousTeam){changes.push({createdAt:now,category:"Teams",action:"Team toegevoegd",detail:`${team.teamName} (ploegleider: ${team.name})`})}
+   else {
+    const fields=[["Deelnemersnaam",previousTeam.name,team.name],["Teamnaam",previousTeam.teamName,team.teamName],["Kleur 1",previousTeam.color1,team.color1],["Kleur 2",previousTeam.color2,team.color2],["Starters",previousTeam.riders,team.riders],["Reserves",previousTeam.reserves,team.reserves]];
+    fields.filter(([,before,after])=>String(before||"")!==String(after||"")).forEach(([label,before,after])=>changes.push({createdAt:now,category:"Teams",action:`${label} gewijzigd`,detail:`${previousTeam.teamName} (ploegleider: ${previousTeam.name}): ${before||"-"} -> ${after||"-"}`}));
+   }
+   if(changes.length)await client.query(`INSERT INTO round_runtime_state(round_id,state,feedback,admin_log,revision) VALUES($1,'{}'::jsonb,'[]'::jsonb,$2::jsonb,1) ON CONFLICT(round_id) DO UPDATE SET admin_log=$2::jsonb||round_runtime_state.admin_log,revision=round_runtime_state.revision+1,updated_at=now()`,[roundId,JSON.stringify(changes)]);
    await client.query("COMMIT");
    return await this.getTeam(roundId,saved.rows[0].id);
   }catch(error){

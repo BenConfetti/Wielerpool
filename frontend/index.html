@@ -225,7 +225,7 @@
 
         <section class="panel">
           <h2>Mogelijke fouten</h2>
-          <p class="hint">Automatische controles op ontbrekende tijden, imports en handmatige prijsafwijkingen. Vink een melding af zodra je haar hebt gecontroleerd of hersteld; nieuwe of gewijzigde meldingen verschijnen opnieuw.</p>
+          <p class="hint">Automatische controles op ontbrekende tijden, imports en werkelijk overschreven handmatige prijzen. Vink een melding af en klik op Admin opslaan om haar te archiveren; nieuwe of gewijzigde meldingen verschijnen opnieuw.</p>
           <div id="possibleErrorsData" class="possible-errors-data">Controleren...</div>
           <details class="admin-collapsible">
             <summary>Wat testen de vaste rekentests?</summary>
@@ -276,16 +276,22 @@
           </div>
           <p class="hint">De percentages voor eindklassementen en dagprijzen moeten samen 100% zijn.</p>
 
-          <h3 class="admin-subheading">Introtekst</h3>
-          <p class="hint">Pas hier de volledige opgemaakte introtekst en spelregels aan. De wijziging geldt alleen voor deze ronde.</p>
-          <div id="introEditor" class="intro-admin-editor" contenteditable="true" role="textbox" aria-multiline="true"></div>
+          <details class="admin-collapsible">
+            <summary>Introtekst</summary>
+            <p class="hint">Pas hier de volledige opgemaakte introtekst en spelregels aan. De wijziging geldt alleen voor deze ronde.</p>
+            <div id="introEditor" class="intro-admin-editor" contenteditable="true" role="textbox" aria-multiline="true"></div>
+          </details>
 
-          <h3 class="admin-subheading">Prijzenschema</h3>
-          <div id="prizeWeightEditor" class="prize-weight-editor"></div>
+          <details class="admin-collapsible">
+            <summary>Prijzenschema</summary>
+            <div id="prizeWeightEditor" class="prize-weight-editor"></div>
+          </details>
 
-          <h3 class="admin-subheading">Wisselvensters</h3>
-          <p class="hint">Per ronde kun je hier instellen wanneer deelnemers hun rustdagwissels mogen opslaan. De test-override in Teamselectie blijft dit omzeilen.</p>
-          <div id="exchangeWindowEditor" class="exchange-window-editor"></div>
+          <details class="admin-collapsible">
+            <summary>Wisselvensters</summary>
+            <p class="hint">Per ronde kun je hier instellen wanneer deelnemers hun rustdagwissels mogen opslaan. De test-override in Teamselectie blijft dit omzeilen.</p>
+            <div id="exchangeWindowEditor" class="exchange-window-editor"></div>
+          </details>
 
           <details class="admin-collapsible">
             <summary>BC-prijslijst aanpassen</summary>

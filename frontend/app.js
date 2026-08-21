@@ -136,6 +136,27 @@ const els = {
   adminLogData: document.getElementById("adminLogData")
 };
 
+setupAdminLayout();
+
+function setupAdminLayout() {
+  if (!els.adminContent || els.adminContent.dataset.layoutReady === "1") return;
+  const sections = [...els.adminContent.querySelectorAll(":scope > section.panel")];
+  const settingsSection = sections.find((section) => section.classList.contains("settings"));
+  if (settingsSection) els.adminContent.prepend(settingsSection);
+  [...els.adminContent.querySelectorAll(":scope > section.panel")].forEach((section) => {
+    const heading = section.querySelector(":scope > h2, :scope > .section-heading > h2");
+    const details = document.createElement("details");
+    details.className = [...section.classList, "admin-section"].join(" ");
+    if (section === settingsSection) details.open = true;
+    const summary = document.createElement("summary");
+    summary.textContent = heading?.textContent || "Adminonderdeel";
+    heading?.remove();
+    details.append(summary, ...section.childNodes);
+    section.replaceWith(details);
+  });
+  els.adminContent.dataset.layoutReady = "1";
+}
+
 document.querySelectorAll("[data-tab-target]").forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
 });
@@ -341,17 +362,14 @@ els.introEditor?.addEventListener("input", () => {
   showAdminSaveStatus("Adminwijzigingen nog niet opgeslagen.", "pending");
 });
 
-document.getElementById("saveAdminButton")?.addEventListener("click", () => {
-  saveAdminChanges();
+document.getElementById("saveAdminButton")?.addEventListener("click", async () => {
+  await saveAdminChanges();
 });
 
 els.possibleErrorsData?.addEventListener("change", (event) => {
   const checkbox = event.target.closest("[data-error-acknowledgement]");
   if (!checkbox) return;
-  state.settings.errorAcknowledgements = state.settings.errorAcknowledgements || {};
-  state.settings.errorAcknowledgements[checkbox.dataset.errorAcknowledgement] = checkbox.checked;
-  persistState();
-  renderPossibleErrors();
+  showAdminSaveStatus("Adminwijzigingen nog niet opgeslagen.", "pending");
 });
 
 document.getElementById("addStageButton")?.addEventListener("click", () => {
@@ -642,6 +660,7 @@ function migrateState(savedState) {
   const nextState = savedState ? { ...structuredClone(exampleState), ...savedState } : structuredClone(exampleState);
   nextState.settings = normalizeSettings(nextState.settings);
   if (PRICE_VERSION && nextState.priceVersion !== PRICE_VERSION) {
+    nextState.priceOverwriteCandidates = { ...(nextState.settings.bcPrices || {}) };
     nextState.settings.bcPrices = {};
     nextState.priceVersion = PRICE_VERSION;
   }
@@ -850,6 +869,7 @@ async function loadOfficialStages(options = {}) {
     }
   }
   tourRiders = await loadTourRiderList();
+  recordOverwrittenPriceWarnings();
   withdrawalRecords = await loadWithdrawalRecords();
   applyWithdrawalRecordsToTourRiders();
 }
@@ -892,6 +912,7 @@ async function loadTourRiderList() {
           youth: isTruthyCell(row[4]) ? "Ja" : "",
           bc: price,
           price,
+          basePrice: Number(bc.bc || 0),
           rank: bc.rank || "",
           status
         };
@@ -1122,7 +1143,7 @@ function renderTeamSelectionMatrix() {
             <th>Renner</th>
             <th>BC</th>
             <th>Totaal</th>
-            ${state.teams.map((team) => `<th title="${escapeAttr(displayTeamWithManager(team))}">${escapeHtml(displayTeamWithManager(team))}</th>`).join("")}
+            ${state.teams.map((team) => `<th class="team-matrix-team-heading" title="${escapeAttr(displayTeamWithManager(team))}"><span>${escapeHtml(displayTeamWithManager(team))}</span></th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -3818,13 +3839,29 @@ function saveFromForm() {
 }
 
 function readBcPricesFromForm() {
-  const prices = { ...(state.settings.bcPrices || {}) };
+  const prices = {};
   document.querySelectorAll("[data-bc-price]").forEach((input) => {
     const key = normalizeName(input.dataset.bcPrice || "");
     if (!key) return;
-    prices[key] = Number(input.value || 0);
+    const value = Number(input.value || 0);
+    const rider = tourRiders.find((item) => normalizeName(item.name) === key);
+    if (!rider || value !== Number(rider.basePrice || 0)) prices[key] = value;
   });
   return prices;
+}
+
+function recordOverwrittenPriceWarnings() {
+  const candidates = state.priceOverwriteCandidates || {};
+  Object.entries(candidates).forEach(([riderName, previousPrice]) => {
+    const rider = tourRiders.find((item) => normalizeName(item.name) === normalizeName(riderName));
+    if (!rider || Number(previousPrice) === Number(rider.basePrice || 0)) return;
+    recordImportWarning(
+      "BC-prijs overschreven",
+      `${rider.displayName}: handmatige prijs ${formatNumber(Number(previousPrice))} BC is door de nieuwe prijslijst vervangen door ${formatNumber(Number(rider.basePrice || 0))} BC.`,
+      `price-overwrite-${PRICE_VERSION}-${rider.name}-${previousPrice}-${rider.basePrice}`
+    );
+  });
+  delete state.priceOverwriteCandidates;
 }
 
 function readExchangeWindowsFromForm() {
@@ -4752,8 +4789,8 @@ function renderAdminOverview() {
   const loadedStages = state.stages.filter((stage) => String(stage.results || "").trim()).length;
   const participantRows = state.teams.map((team) => `
     <tr>
-      <td>${escapeHtml(team.name || "-")}</td>
-      <td>${escapeHtml(team.teamName || "-")}</td>
+      <td><input data-admin-team-name="${escapeAttr(teamKey(team))}" value="${escapeAttr(team.name || "")}" aria-label="Deelnemersnaam"></td>
+      <td><input data-admin-team-title="${escapeAttr(teamKey(team))}" value="${escapeAttr(team.teamName || "")}" aria-label="Teamnaam"></td>
     </tr>
   `).join("");
   const windows = normalizeExchangeWindows(state.settings.exchangeWindows);
@@ -4772,8 +4809,8 @@ function renderAdminOverview() {
       <article><strong>Adminlog</strong><span>${formatNumber(adminLogItems.length)} wijzigingen</span></article>
       <article><strong>Herberekenen</strong><span>Gebruik Stand > Herbereken vanaf etappe 2 na team- of regelwijzigingen.</span></article>
     </div>
-    <section class="admin-participants">
-      <h3>Deelnemers (${formatNumber(state.teams.length)})</h3>
+    <details class="admin-participants admin-collapsible">
+      <summary>Deelnemers (${formatNumber(state.teams.length)})</summary>
       ${participantRows ? `
         <div class="data-table">
           <table>
@@ -4782,7 +4819,7 @@ function renderAdminOverview() {
           </table>
         </div>
       ` : '<p class="hint">Nog geen deelnemers aangemeld.</p>'}
-    </section>
+    </details>
   `;
 }
 
@@ -4793,7 +4830,7 @@ function lastLoadedStageName() {
     .at(-1)?.name || "";
 }
 
-function saveAdminChanges() {
+async function saveAdminChanges() {
   const splitError = validatePrizePotSplitForm();
   if (splitError) {
     showAdminSaveStatus(splitError, "error");
@@ -4805,7 +4842,41 @@ function saveAdminChanges() {
     state.settings.introHtml = sanitizeIntroHtml(els.introEditor.innerHTML);
     changes.push({ category: "Intro", action: "Introtekst aangepast", before, after: "Aangepaste tekst" });
   }
+  const emptyTeamIdentity = [...document.querySelectorAll("[data-admin-team-name], [data-admin-team-title]")].some((input) => !String(input.value || "").trim());
+  if (emptyTeamIdentity) {
+    showAdminSaveStatus("Deelnemersnaam en teamnaam mogen niet leeg zijn.", "error");
+    return;
+  }
+  const teamIdentityChanges = collectTeamIdentityChanges();
+  const teamsBeforeSave = structuredClone(state.teams);
   saveFromForm();
+  teamIdentityChanges.forEach(({ team, name, teamName }) => {
+    team.name = name;
+    team.teamName = teamName;
+  });
+  if (POOL_STORAGE.mode === "api" && teamIdentityChanges.length) {
+    try {
+      for (const { team } of teamIdentityChanges) Object.assign(team, await POOL_STORAGE.api.saveTeamSelection(team));
+      await refreshRuntimeMetadata();
+    } catch (error) {
+      state.teams = teamsBeforeSave;
+      showAdminSaveStatus("Team- of deelnemersnaam niet opgeslagen; bestaande teamgegevens zijn ongewijzigd gebleven.", "error");
+      return;
+    }
+  }
+  teamIdentityChanges.forEach(({ team, beforeName }) => {
+    (state.manualSwaps || []).filter((swap) => (team.id && swap.teamId === team.id) || (!swap.teamId && normalizeName(swap.teamName) === normalizeName(beforeName)))
+      .forEach((swap) => { swap.teamName = team.name; });
+  });
+  if (participantAccess) {
+    const accessibleTeam = teamIdentityChanges.find(({ beforeName, beforeTeamName }) => participantMatches({ name: beforeName, teamName: beforeTeamName }));
+    if (accessibleTeam) {
+      participantAccess = { name: accessibleTeam.team.name, teamName: accessibleTeam.team.teamName };
+      localStorage.setItem(`${STORAGE_PREFIX}-participant-access`, JSON.stringify(participantAccess));
+      persistClientState();
+    }
+  }
+  const archivedErrorCount = archiveCheckedPossibleErrors();
   persistState();
   applyBcPriceOverrides();
   changes.forEach((change) => {
@@ -4822,7 +4893,9 @@ function saveAdminChanges() {
   renderChartsData();
   renderAdminSettings();
   renderAdminOverview();
-  showAdminSaveStatus(changes.length ? "Adminwijzigingen opgeslagen." : "Geen adminwijzigingen om op te slaan.", "success");
+  renderPossibleErrors();
+  renderAdminLog();
+  showAdminSaveStatus(changes.length || teamIdentityChanges.length || archivedErrorCount ? "Adminwijzigingen opgeslagen." : "Geen adminwijzigingen om op te slaan.", "success");
 }
 
 function validatePrizePotSplitForm() {
@@ -4839,7 +4912,7 @@ function validatePrizePotSplitForm() {
 
 function collectAdminChanges() {
   return [...document.querySelectorAll('[data-tab-panel="admin"] input, [data-tab-panel="admin"] select, [data-tab-panel="admin"] textarea')]
-    .filter((control) => control.id !== "adminPasswordInput")
+    .filter((control) => control.id !== "adminPasswordInput" && !control.matches("[data-error-acknowledgement], [data-admin-team-name], [data-admin-team-title]"))
     .map((control) => ({
       control,
       before: control.dataset.adminPreviousValue ?? control.defaultValue ?? "",
@@ -4877,6 +4950,7 @@ function renderAdminLog() {
     els.adminLogData.innerHTML = "<p class=\"hint\">Nog geen adminwijzigingen.</p>";
     return;
   }
+  adminLogItems = adminLogItems.filter((item) => !isNoisyAdminLogItem(item));
   const rows = [
     ["DATUM", "CATEGORIE", "ACTIE", "DETAIL"],
     ...adminLogItems.map((item) => [
@@ -4934,6 +5008,28 @@ async function saveAccessibleTeamToApi() {
   persistState();
 }
 
+function isNoisyAdminLogItem(item) {
+  return item?.category === "Admin" && item?.action === "Adminveld" && /(?:^|\s)->\s*on\s*$/i.test(String(item.detail || ""));
+}
+
+function collectTeamIdentityChanges() {
+  return state.teams.map((team) => {
+    const name = String(document.querySelector(`[data-admin-team-name="${CSS.escape(teamKey(team))}"]`)?.value || team.name).trim();
+    const teamName = String(document.querySelector(`[data-admin-team-title="${CSS.escape(teamKey(team))}"]`)?.value || team.teamName).trim();
+    return { team, name, teamName, beforeName: team.name, beforeTeamName: team.teamName };
+  }).filter((change) => change.name && change.teamName && (change.name !== change.beforeName || change.teamName !== change.beforeTeamName));
+}
+
+function archiveCheckedPossibleErrors() {
+  state.settings.archivedPossibleErrors = state.settings.archivedPossibleErrors || {};
+  const checked = [...document.querySelectorAll("[data-error-acknowledgement]:checked")];
+  checked.forEach((checkbox) => {
+    state.settings.archivedPossibleErrors[checkbox.dataset.errorAcknowledgement] = new Date().toISOString();
+  });
+  state.settings.errorAcknowledgements = {};
+  return checked.length;
+}
+
 function mergeRemoteManualSwaps(remoteTeams) {
   const remoteTeamIds = new Set(remoteTeams.map((team) => String(team.id || "")).filter(Boolean));
   const retained = (state.manualSwaps || []).filter((swap) => !swap.teamId || !remoteTeamIds.has(String(swap.teamId)));
@@ -4983,11 +5079,6 @@ function renderPossibleErrors() {
     category: "Mislukte rekentest",
     message: `${result.name} is mislukt. Controleer de spelberekening voordat je verdergaat.`
   }));
-  Object.entries(state.settings.bcPrices || {}).forEach(([rider, price]) => issues.push({
-    id: `manual-price-${rider}-${price}`,
-    category: "Handmatige BC-prijs",
-    message: `${findRiderDisplayName(rider)} heeft een handmatige prijs van ${formatNumber(Number(price))} BC. Een nieuwe priceVersion overschrijft deze aanpassing.`
-  }));
   if (state.stages.some((stage) => stage.results?.trim()) && state.teams.length) {
     const standings = calculateStandings(state);
     standings.progress.filter((entry) => entry.ineligibleReason).forEach((entry) => issues.push({
@@ -5003,14 +5094,14 @@ function renderPossibleErrors() {
     });
   }
   const unique = [...new Map(issues.map((issue) => [issue.id, issue])).values()];
-  const acknowledgements = state.settings.errorAcknowledgements || {};
-  if (!unique.length) {
+  const archived = state.settings.archivedPossibleErrors || {};
+  const visible = unique.filter((issue) => !archived[issue.id]);
+  if (!visible.length) {
     els.possibleErrorsData.innerHTML = '<p class="save-status save-status-success">Geen mogelijke fouten gevonden.</p>';
     return;
   }
-  els.possibleErrorsData.innerHTML = `<div class="possible-errors-list">${unique.map((issue) => {
-    const checked = Boolean(acknowledgements[issue.id]);
-    return `<label class="possible-error ${checked ? "possible-error-handled" : ""}"><input type="checkbox" data-error-acknowledgement="${escapeAttr(issue.id)}" ${checked ? "checked" : ""}><span><strong>${escapeHtml(issue.category || "Controle")}</strong><br>${escapeHtml(issue.message)}</span></label>`;
+  els.possibleErrorsData.innerHTML = `<div class="possible-errors-list">${visible.map((issue) => {
+    return `<label class="possible-error"><input type="checkbox" data-error-acknowledgement="${escapeAttr(issue.id)}"><span><strong>${escapeHtml(issue.category || "Controle")}</strong><br>${escapeHtml(issue.message)}</span></label>`;
   }).join("")}</div>`;
 }
 
@@ -5046,6 +5137,16 @@ async function syncRuntimeFromApi() {
     console.warn("Online rondegegevens konden niet worden geladen; lokale opslag blijft actief.", error);
     return false;
   }
+}
+
+async function refreshRuntimeMetadata() {
+  if (POOL_STORAGE.mode !== "api") return;
+  const remote = await POOL_STORAGE.api.getRuntimeState();
+  runtimeRevision = Number(remote?.revision || runtimeRevision);
+  adminLogItems = Array.isArray(remote?.adminLog) ? remote.adminLog.filter((item) => !isNoisyAdminLogItem(item)) : adminLogItems;
+  feedbackItems = Array.isArray(remote?.feedback) ? remote.feedback : feedbackItems;
+  POOL_STORAGE.saveAdminLog(adminLogItems);
+  POOL_STORAGE.saveFeedback(feedbackItems);
 }
 
 function hasMeaningfulLocalRuntimeData() {
@@ -5151,7 +5252,7 @@ function persistAdminLog() {
 
 function loadAdminLog() {
   const parsed = POOL_STORAGE.getAdminLog();
-  return Array.isArray(parsed) ? parsed : [];
+  return Array.isArray(parsed) ? parsed.filter((item) => !isNoisyAdminLogItem(item)) : [];
 }
 
 function downloadTextFile(filename, content, type) {

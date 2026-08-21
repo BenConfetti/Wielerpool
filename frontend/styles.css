@@ -1238,6 +1238,27 @@ textarea {
   min-width: 640px;
 }
 
+.standing .detail-open {
+  line-height: inherit;
+  min-height: 0;
+  vertical-align: middle;
+}
+
+.standing td:nth-child(2) .kit-swatch {
+  vertical-align: middle;
+}
+
+.admin-section > summary {
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.admin-section[open] > summary {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 8px;
+}
+
 .data-section + .data-section {
   margin-top: 4px;
 }
@@ -2503,6 +2524,7 @@ tbody tr:hover {
   details > summary { min-height: 32px; padding: 6px 2px; }
   th, td { font-size: 10px; line-height: 1.15; padding: 2px 3px; }
   .standing th, .standing td { font-size: 10px; padding: 2px 3px; }
+  .standing .detail-open { font-size: 10px; padding: 0; }
   .standing h3 { font-size: 12px; padding: 4px; }
   .progress-stage-grid { grid-template-columns: minmax(0, 1fr); }
   .progress-team { padding: 2px; }
@@ -2528,6 +2550,38 @@ tbody tr:hover {
 .intro-admin-editor:focus {
   border-color: var(--accent);
   outline: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Compacte selectiematrix met verticale teamkoppen. */
+.team-selection-matrix table {
+  min-width: 100%;
+  width: max-content;
+}
+
+.team-selection-matrix .team-matrix-team-heading {
+  height: 170px;
+  max-width: 34px;
+  min-width: 34px;
+  padding: 4px 2px;
+  vertical-align: bottom;
+  width: 34px;
+}
+
+.team-matrix-team-heading span {
+  display: inline-block;
+  line-height: 1.05;
+  max-height: 160px;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  transform: rotate(180deg);
+  writing-mode: vertical-rl;
+}
+
+.team-selection-matrix .matrix-cell {
+  max-width: 34px;
+  min-width: 34px;
+  width: 34px;
 }
 
 /* Houd de tekst rondom het prijzenschema compact; de tabellen behouden hun eigen formaat. */
