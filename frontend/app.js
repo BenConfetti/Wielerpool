@@ -1401,29 +1401,34 @@ function updateTeamRiderAvailability(teamIndex, options = {}) {
     const activeChoice = row.querySelector(`[data-team-rider-choice="${teamIndex}"]`);
     const reserveChoice = row.querySelector(`[data-team-reserve-choice="${teamIndex}"]`);
     const key = normalizeName(activeChoice?.dataset.riderName || reserveChoice?.dataset.riderName || "");
+    const price = Number(activeChoice?.dataset.price || reserveChoice?.dataset.price || 0);
     const selectedAsActive = Boolean(activeChoice?.checked);
     const selectedAsReserve = Boolean(reserveChoice?.checked);
     const selectedHere = selectedAsActive || selectedAsReserve;
     const duplicateChecked = key && selectedCounts.get(key) > 1;
     const alreadyChosenElsewhere = !selectedHere && selectedCounts.has(key);
+    const exceedsBudget = !selectedHere && !alreadyChosenElsewhere && budget.totalCost + price > budget.maxBudget;
+    const budgetTitle = exceedsBudget
+      ? `Met deze renner wordt het budget met ${formatNumber(budget.totalCost + price - budget.maxBudget)} BC overschreden.`
+      : "";
     if (activeChoice) {
-      activeChoice.disabled = selectedAsReserve || alreadyChosenElsewhere;
+      activeChoice.disabled = selectedAsReserve || alreadyChosenElsewhere || exceedsBudget;
       activeChoice.classList.toggle("input-error", Boolean(duplicateChecked));
       activeChoice.classList.toggle("choice-limit-reached", activeLimitReached && !selectedAsActive);
-      activeChoice.title = activeLimitReached && !selectedAsActive
+      activeChoice.title = budgetTitle || (activeLimitReached && !selectedAsActive
         ? `Er zijn al ${STARTER_COUNT} starters gekozen. Vink daarna een andere starter uit.`
-        : "";
+        : "");
     }
     if (reserveChoice) {
-      reserveChoice.disabled = selectedAsActive || alreadyChosenElsewhere;
+      reserveChoice.disabled = selectedAsActive || alreadyChosenElsewhere || exceedsBudget;
       reserveChoice.classList.toggle("input-error", Boolean(duplicateChecked));
       reserveChoice.classList.toggle("choice-limit-reached", reserveLimitReached && !selectedAsReserve);
-      reserveChoice.title = reserveLimitReached && !selectedAsReserve
+      reserveChoice.title = budgetTitle || (reserveLimitReached && !selectedAsReserve
         ? `Er zijn al ${RESERVE_COUNT} reserves gekozen. Vink daarna een andere reserve uit.`
-        : "";
+        : "");
     }
-    row.classList.toggle("rider-choice-disabled", selectedHere || alreadyChosenElsewhere);
-    row.classList.toggle("rider-choice-over-budget", budget.overBudget);
+    row.classList.toggle("rider-choice-disabled", selectedHere || alreadyChosenElsewhere || exceedsBudget);
+    row.classList.toggle("rider-choice-over-budget", exceedsBudget);
     row.classList.toggle("rider-choice-duplicate", Boolean(duplicateChecked));
   });
 
