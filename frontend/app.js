@@ -1395,35 +1395,25 @@ function updateTeamRiderAvailability(teamIndex, options = {}) {
   const active = readSelectedRidersFromDom(teamIndex, "rider");
   const reserves = readSelectedRidersFromDom(teamIndex, "reserve");
   const budget = calculateTeamBudgetFromLists(active, reserves);
-  const countByKind = {
-    rider: active.length,
-    reserve: reserves.length
-  };
-
   document.querySelectorAll(`[data-choice-label="${teamIndex}"]`).forEach((row) => {
     const activeChoice = row.querySelector(`[data-team-rider-choice="${teamIndex}"]`);
     const reserveChoice = row.querySelector(`[data-team-reserve-choice="${teamIndex}"]`);
     const key = normalizeName(activeChoice?.dataset.riderName || reserveChoice?.dataset.riderName || "");
-    const price = Number(activeChoice?.dataset.price || reserveChoice?.dataset.price || 0);
     const selectedAsActive = Boolean(activeChoice?.checked);
     const selectedAsReserve = Boolean(reserveChoice?.checked);
     const selectedHere = selectedAsActive || selectedAsReserve;
     const duplicateChecked = key && selectedCounts.get(key) > 1;
     const alreadyChosenElsewhere = !selectedHere && selectedCounts.has(key);
-    const overBudget = !selectedHere && !alreadyChosenElsewhere && budget.totalCost + price > budget.maxBudget;
-    const activeMaxReached = !selectedHere && !alreadyChosenElsewhere && !overBudget && countByKind.rider >= STARTER_COUNT;
-    const reserveMaxReached = !selectedHere && !alreadyChosenElsewhere && !overBudget && countByKind.reserve >= RESERVE_COUNT;
-    const maxReached = activeMaxReached && reserveMaxReached;
     if (activeChoice) {
-      activeChoice.disabled = selectedAsReserve || alreadyChosenElsewhere || overBudget || activeMaxReached;
+      activeChoice.disabled = selectedAsReserve || alreadyChosenElsewhere;
       activeChoice.classList.toggle("input-error", Boolean(duplicateChecked));
     }
     if (reserveChoice) {
-      reserveChoice.disabled = selectedAsActive || alreadyChosenElsewhere || overBudget || reserveMaxReached;
+      reserveChoice.disabled = selectedAsActive || alreadyChosenElsewhere;
       reserveChoice.classList.toggle("input-error", Boolean(duplicateChecked));
     }
-    row.classList.toggle("rider-choice-disabled", selectedHere || alreadyChosenElsewhere || maxReached);
-    row.classList.toggle("rider-choice-over-budget", overBudget);
+    row.classList.toggle("rider-choice-disabled", selectedHere || alreadyChosenElsewhere);
+    row.classList.toggle("rider-choice-over-budget", budget.overBudget);
     row.classList.toggle("rider-choice-duplicate", Boolean(duplicateChecked));
   });
 
@@ -1484,6 +1474,7 @@ function validateAllTeamColors() {
 function validateAllTeamRiders() {
   return state.teams
     .map((team, index) => {
+      if (!document.querySelector(`[data-team-name="${index}"]`)) return null;
       const active = readSelectedRidersFromDom(index, "rider");
       const reserves = readSelectedRidersFromDom(index, "reserve");
       const result = validateTeamRidersFromLists(active, reserves);
@@ -1498,6 +1489,10 @@ function validateTeamRidersFromLists(active, reserves) {
   }
   if (reserves.length > RESERVE_COUNT) {
     return { valid: false, message: `Kies maximaal ${RESERVE_COUNT} reserves.` };
+  }
+  const budget = calculateTeamBudgetFromLists(active, reserves);
+  if (budget.overBudget) {
+    return { valid: false, message: `Je selectie is ${formatNumber(Math.abs(budget.remaining))} BC te duur.` };
   }
   const counts = new Map();
   [...active, ...reserves].forEach((rider) => {
