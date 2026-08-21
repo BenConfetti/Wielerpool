@@ -29,6 +29,9 @@
       const normalize = (value) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
       return `participant:${normalize(team?.name)}|${normalize(team?.teamName)}`;
     },
+    isConfiguredRestDaySwap(afterStage, exchangeWindows = []) {
+      return exchangeWindows.some((window) => Number(window?.afterStage) === Number(afterStage));
+    },
     selfTest() {
       const results = [];
       const check = (name, condition) => results.push({ name, passed: Boolean(condition) });
@@ -40,6 +43,7 @@
       check("DNF wordt niet als tijd nul gelezen", api.parseTimeValue("DNF") === null);
       check("Tijdnotatie wordt naar seconden omgerekend", api.parseTimeValue("1:02:03") === 3723);
       check("Deelnemer-teams hebben een unieke sleutel", api.teamKey({ id: "abc", name: "Sam" }) !== api.teamKey({ id: "def", name: "Sam" }));
+      check("Alleen ingestelde rustdagen leveren handmatige wissels", api.isConfiguredRestDaySwap(9, [{ afterStage: 9 }, { afterStage: 15 }]) && !api.isConfiguredRestDaySwap(1, [{ afterStage: 9 }, { afterStage: 15 }]));
       return results;
     }
   });

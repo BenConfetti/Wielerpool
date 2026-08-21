@@ -150,7 +150,7 @@ function setupAdminLayout() {
     const heading = section.querySelector(":scope > h2, :scope > .section-heading > h2");
     const details = document.createElement("details");
     details.className = [...section.classList, "admin-section"].join(" ");
-    if (section === settingsSection) details.open = true;
+    if (section === settingsSection || heading?.textContent?.trim() === "Mogelijke fouten") details.open = true;
     const summary = document.createElement("summary");
     summary.textContent = heading?.textContent || "Adminonderdeel";
     heading?.remove();
@@ -201,7 +201,8 @@ document.getElementById("saveTeamsButton")?.addEventListener("click", async () =
     showTeamSaveStatus(`Niet opgeslagen: ${errors.join(" ")}`, "error");
     return;
   }
-  const gameChangeMode = Boolean(els.gameChangeMode?.checked);
+  const gameChangeRequested = Boolean(els.gameChangeMode?.checked);
+  const gameChangeMode = gameChangeRequested && hasLoadedStageResults();
   if (!gameChangeMode && !isInitialSelectionOpen()) {
     showTeamSaveStatus(`Niet opgeslagen: de deadline voor vrije selectiewijzigingen was ${formatSelectionDeadline()}.`, "error");
     return;
@@ -686,7 +687,7 @@ function migrateState(savedState) {
     nextState.settings.bcPrices = {};
     nextState.priceVersion = PRICE_VERSION;
   }
-  nextState.manualSwaps = Array.isArray(nextState.manualSwaps) ? nextState.manualSwaps : [];
+  nextState.manualSwaps = (Array.isArray(nextState.manualSwaps) ? nextState.manualSwaps : []).filter((swap) => isConfiguredRestDaySwap(swap, nextState));
   applyTeamColorPalette(nextState);
   if (nextState.dataVersion !== DATA_VERSION) {
     nextState.dataVersion = DATA_VERSION;
@@ -1002,6 +1003,10 @@ function loadParticipantAccess() {
   } catch {
     return null;
   }
+}
+
+function isConfiguredRestDaySwap(swap, currentState = state) {
+  return GAME_LOGIC.isConfiguredRestDaySwap(swap?.afterStage, normalizeExchangeWindows(currentState.settings?.exchangeWindows));
 }
 
 function getOrCreateClientId() {
@@ -2156,6 +2161,10 @@ async function renderCombinedRiderData() {
     ])
   ];
   els.startlistData.innerHTML = renderDataTable(rows);
+}
+
+function hasLoadedStageResults() {
+  return (state.stages || []).some((stage) => String(stage.results || "").trim());
 }
 
 function isInitialSelectionOpen() {
@@ -5130,7 +5139,7 @@ function archiveCheckedPossibleErrors() {
 function mergeRemoteManualSwaps(remoteTeams) {
   const remoteTeamIds = new Set(remoteTeams.map((team) => String(team.id || "")).filter(Boolean));
   const retained = (state.manualSwaps || []).filter((swap) => !swap.teamId || !remoteTeamIds.has(String(swap.teamId)));
-  const received = remoteTeams.flatMap((team) => (team.manualSwaps || []).map((swap) => ({
+  const received = remoteTeams.flatMap((team) => (team.manualSwaps || []).filter((swap) => isConfiguredRestDaySwap(swap)).map((swap) => ({
     ...swap,
     teamId: team.id || swap.teamId || "",
     teamName: swap.teamName || team.name
@@ -5141,6 +5150,7 @@ function mergeRemoteManualSwaps(remoteTeams) {
 async function syncTeamsFromApi() {
   if (POOL_STORAGE.mode !== "api") return;
   const localTeams = Array.isArray(state.teams) ? structuredClone(state.teams) : [];
+  let teamsLoaded = false;
   showAppLoadingStatus("Teams worden geladen…");
   try {
     let remoteTeams = await POOL_STORAGE.api.listTeams();
@@ -5159,12 +5169,14 @@ async function syncTeamsFromApi() {
     mergeRemoteManualSwaps(remoteTeams);
     state.teams = remoteTeams;
     storageSyncError = "";
+    teamsLoaded = true;
     persistState();
   } catch (error) {
     storageSyncError = "Online teams konden niet worden geladen. Ververs de pagina zodra de verbinding hersteld is.";
     console.warn("Online teams konden niet worden geladen; lokale opslag blijft actief.", error);
   } finally {
-    hideAppLoadingStatus();
+    if (teamsLoaded) hideAppLoadingStatus();
+    else showAppLoadingStatus(storageSyncError || "Teams konden niet worden geladen.");
   }
 }
 
@@ -5364,6 +5376,7 @@ function downloadTextFile(filename, content, type) {
 }
 
 (async function startApp() {
+  showAppLoadingStatus("Teams worden geladen…");
   applyRoundConfig();
   renderRoundIntro();
   const runtimeAvailable = await syncRuntimeFromApi();

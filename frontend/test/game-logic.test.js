@@ -6,7 +6,7 @@ const logic = globalThis.POOL_GAME_LOGIC;
 
 test("vaste spelregels slagen", () => {
   const results = logic.selfTest();
-  assert.equal(results.length, 8);
+  assert.equal(results.length, 9);
   assert.deepEqual(results.filter((result) => !result.passed), []);
 });
 
@@ -32,4 +32,10 @@ test("prijzen en uitvalmomenten zijn deterministisch", () => {
   assert.equal(logic.splitPrize(10, 0), 0);
   assert.equal(logic.withdrawalEffectiveStage("OTL", 8), 9);
   assert.equal(logic.withdrawalEffectiveStage("DNS", 8), 8);
+});
+
+test("handmatige wissels horen alleen bij rustdagen", () => {
+  const windows = [{ afterStage: 9 }, { afterStage: 15 }];
+  assert.equal(logic.isConfiguredRestDaySwap(1, windows), false);
+  assert.equal(logic.isConfiguredRestDaySwap(9, windows), true);
 });
