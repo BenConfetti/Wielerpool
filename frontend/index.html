@@ -42,6 +42,7 @@
           <section class="participant-access" aria-labelledby="participantAccessTitle">
             <h2 id="participantAccessTitle">Mijn selectie</h2>
             <p class="hint">Vul dezelfde naam en teamnaam in waarmee je de selectie hebt aangemaakt.</p>
+            <p id="selectionDeadlineHint" class="hint"></p>
             <div class="participant-access-fields">
               <label>Jouw naam<input id="participantNameInput" autocomplete="name" placeholder="Bijvoorbeeld Keje"></label>
               <label>Teamnaam<input id="participantTeamNameInput" autocomplete="organization" placeholder="Naam van je ploeg"></label>
@@ -264,6 +265,10 @@
             <label>
               Aantal etappes
               <input id="stageCountInput" type="number" min="1" step="1" value="21">
+            </label>
+            <label>
+              Selectiedeadline
+              <input id="selectionDeadlineInput" type="datetime-local">
             </label>
             <label>
               Eindklassementen (% van pot)

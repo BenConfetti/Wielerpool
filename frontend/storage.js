@@ -57,11 +57,16 @@
         getParticipants: () => request(`/rounds/${encodeURIComponent(roundId)}/participants`),
         getRiders: () => request(`/rounds/${encodeURIComponent(roundId)}/riders`)
         ,listTeams: () => request("/rounds/" + encodeURIComponent(roundId) + "/teams")
-        ,saveTeamSelection: (team) => send("/rounds/" + encodeURIComponent(roundId) + "/teams", team)
+        ,saveTeamSelection: (team, options = {}) => send("/rounds/" + encodeURIComponent(roundId) + "/teams", team, "POST", {
+          ...(options.adminPassword ? { "X-Admin-Password": options.adminPassword } : {}),
+          ...(options.selectionMode ? { "X-Selection-Mode": options.selectionMode } : {})
+        })
         ,deleteTeam: (teamId, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/teams/" + encodeURIComponent(teamId), {}, "DELETE", { "X-Admin-Password": adminPassword })
         ,getRuntimeState: () => request("/rounds/" + encodeURIComponent(roundId) + "/runtime-state")
         ,saveRuntimeState: (payload, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state", payload, "PUT", { "X-Admin-Password": adminPassword })
         ,submitFeedback: (item) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/feedback", item)
+        ,appendAdminLog: (item, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/admin-log", item, "POST", { "X-Admin-Password": adminPassword })
+        ,clearAdminLog: (adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/admin-log", {}, "DELETE", { "X-Admin-Password": adminPassword })
         ,getClientState: (clientId) => request("/rounds/" + encodeURIComponent(roundId) + "/client-state/" + encodeURIComponent(clientId))
         ,saveClientState: (clientId, payload) => send("/rounds/" + encodeURIComponent(roundId) + "/client-state/" + encodeURIComponent(clientId), payload, "PUT")
       }),

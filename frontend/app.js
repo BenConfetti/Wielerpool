@@ -59,6 +59,7 @@ const exampleState = {
     budget: Number(ROUND_SETTINGS.budget ?? 20000),
     stageCount: Number(ROUND_SETTINGS.stageCount ?? 21),
     bcPrices: {},
+    selectionDeadline: ROUND_CONFIG.selectionDeadline || "",
     exchangeWindows: structuredClone(ROUND_CONFIG.exchangeWindows || []),
     prizePotSplit: structuredClone(ROUND_SETTINGS.prizePotSplit || DEFAULT_PRIZE_POT_SPLIT),
     prizeWeights: structuredClone(ROUND_SETTINGS.prizeWeights || DEFAULT_PRIZE_WEIGHTS)
@@ -86,6 +87,7 @@ const els = {
   stake: document.getElementById("stakeInput"),
   budget: document.getElementById("budgetInput"),
   stageCount: document.getElementById("stageCountInput"),
+  selectionDeadline: document.getElementById("selectionDeadlineInput"),
   finalPotPercentage: document.getElementById("finalPotPercentageInput"),
   dailyPotPercentage: document.getElementById("dailyPotPercentageInput"),
   teams: document.getElementById("teams"),
@@ -94,6 +96,7 @@ const els = {
   participantName: document.getElementById("participantNameInput"),
   participantTeamName: document.getElementById("participantTeamNameInput"),
   participantAccessStatus: document.getElementById("participantAccessStatus"),
+  selectionDeadlineHint: document.getElementById("selectionDeadlineHint"),
   closeSelection: document.getElementById("closeSelectionButton"),
   gameChangeMode: document.getElementById("gameChangeModeInput"),
   restDayOverride: document.getElementById("restDayOverrideInput"),
@@ -199,6 +202,10 @@ document.getElementById("saveTeamsButton")?.addEventListener("click", async () =
     return;
   }
   const gameChangeMode = Boolean(els.gameChangeMode?.checked);
+  if (!gameChangeMode && !isInitialSelectionOpen()) {
+    showTeamSaveStatus(`Niet opgeslagen: de deadline voor vrije selectiewijzigingen was ${formatSelectionDeadline()}.`, "error");
+    return;
+  }
   const pendingTeamChanges = collectPendingTeamChanges();
   if (gameChangeMode && pendingTeamChanges.length && !isManualSwapAllowedNow()) {
     const moment = getManualSwapMoment();
@@ -212,7 +219,7 @@ document.getElementById("saveTeamsButton")?.addEventListener("click", async () =
     applyRetroactiveTeamChanges(pendingTeamChanges);
   }
   try {
-    await saveAccessibleTeamToApi();
+    await saveAccessibleTeamToApi(gameChangeMode ? "game-change" : "initial");
   } catch (error) {
     showTeamSaveStatus("Niet opgeslagen in de online database. Probeer het over een moment opnieuw.", "error");
     return;
@@ -441,9 +448,18 @@ document.getElementById("exportAdminLogButton")?.addEventListener("click", () =>
   exportAdminLogCsv();
 });
 
-document.getElementById("clearAdminLogButton")?.addEventListener("click", () => {
+document.getElementById("clearAdminLogButton")?.addEventListener("click", async () => {
   if (!adminLogItems.length) return;
   if (!confirm("Adminlog wissen?")) return;
+  try {
+    if (POOL_STORAGE.mode === "api") {
+      const result = await POOL_STORAGE.api.clearAdminLog(ADMIN_PASSWORD);
+      runtimeRevision = Math.max(runtimeRevision, Number(result?.revision || 0));
+    }
+  } catch (error) {
+    showAdminSaveStatus(error.message || "Adminlog kon niet worden gewist.", "error");
+    return;
+  }
   adminLogItems = [];
   persistAdminLog();
   renderAdminLog();
@@ -744,7 +760,10 @@ function renderAdminSettings() {
   renderPrizeWeightEditor();
   renderBcPriceEditor();
   renderExchangeWindowEditor();
-  [els.stake, els.budget, els.stageCount, els.finalPotPercentage, els.dailyPotPercentage].forEach((input) => {
+  if (els.selectionDeadline && document.activeElement !== els.selectionDeadline) {
+    els.selectionDeadline.value = formatDateTimeLocal(state.settings.selectionDeadline);
+  }
+  [els.stake, els.budget, els.stageCount, els.selectionDeadline, els.finalPotPercentage, els.dailyPotPercentage].forEach((input) => {
     if (input) input.dataset.adminPreviousValue = input.value;
   });
 }
@@ -1008,6 +1027,10 @@ function openParticipantSelection(createIfMissing) {
     showParticipantAccessStatus("Vul zowel je naam als je teamnaam in.", "error");
     return;
   }
+  if (createIfMissing && !isInitialSelectionOpen()) {
+    showParticipantAccessStatus(`Nieuwe teams konden worden aangemaakt tot ${formatSelectionDeadline()}.`, "error");
+    return;
+  }
   const existingIndex = state.teams.findIndex((team) => participantMatches(team, { name, teamName }));
   if (existingIndex < 0 && !createIfMissing) {
     showParticipantAccessStatus("Geen selectie gevonden met deze combinatie. Controleer de spelling of maak een nieuwe selectie.", "error");
@@ -1036,6 +1059,9 @@ function openParticipantSelection(createIfMissing) {
 }
 
 function renderParticipantAccess() {
+  if (els.selectionDeadlineHint) els.selectionDeadlineHint.textContent = getSelectionDeadline()
+    ? `Nieuwe teams en vrije wijzigingen zijn mogelijk tot ${formatSelectionDeadline()}.`
+    : "";
   const accessibleTeam = state.teams.find((team) => participantMatches(team));
   if (participantAccess && !accessibleTeam) participantAccess = null;
   if (els.participantName && participantAccess) els.participantName.value = participantAccess.name;
@@ -2132,6 +2158,29 @@ async function renderCombinedRiderData() {
   els.startlistData.innerHTML = renderDataTable(rows);
 }
 
+function isInitialSelectionOpen() {
+  const deadline = getSelectionDeadline();
+  return !deadline || Number.isNaN(deadline.getTime()) || new Date() <= deadline;
+}
+
+function formatSelectionDeadline() {
+  const deadline = getSelectionDeadline();
+  if (!deadline || Number.isNaN(deadline.getTime())) return "de ingestelde deadline";
+  return new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Amsterdam" }).format(deadline);
+}
+
+function getSelectionDeadline() {
+  const value = state.settings.selectionDeadline || ROUND_CONFIG.selectionDeadline || "";
+  return value ? new Date(value) : null;
+}
+
+function formatDateTimeLocal(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 async function renderWithdrawnRiderData() {
   if (!els.withdrawnRidersData) return;
   if (!tourRiders.length) {
@@ -2366,11 +2415,11 @@ function renderParticipantTeamsData() {
         <div class="participant-grid">
           <div>
             <h4>Starters</h4>
-            <ol>${active.map((rider) => `<li>${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
+            <ol>${active.map((rider) => `<li class="${isYouthRider(rider.name) ? "rider-choice-youth" : ""}">${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
           </div>
           <div>
             <h4>Reserves op prioriteit</h4>
-            <ol>${reserves.map((rider) => `<li>${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
+            <ol>${reserves.map((rider) => `<li class="${isYouthRider(rider.name) ? "rider-choice-youth" : ""}">${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
           </div>
           <div>
             <h4>Wissellog</h4>
@@ -3819,6 +3868,7 @@ function saveFromForm() {
   state.settings.stake = Number(els.stake.value || 0);
   state.settings.budget = Number(els.budget.value || 0);
   state.settings.stageCount = Number(els.stageCount.value || 1);
+  state.settings.selectionDeadline = els.selectionDeadline?.value ? new Date(els.selectionDeadline.value).toISOString() : "";
   state.settings.prizePotSplit = {
     final: Number(els.finalPotPercentage?.value ?? state.settings.prizePotSplit?.final ?? DEFAULT_PRIZE_POT_SPLIT.final),
     daily: Number(els.dailyPotPercentage?.value ?? state.settings.prizePotSplit?.daily ?? DEFAULT_PRIZE_POT_SPLIT.daily)
@@ -4891,7 +4941,7 @@ async function saveAdminChanges() {
   });
   if (POOL_STORAGE.mode === "api" && teamIdentityChanges.length) {
     try {
-      for (const { team } of teamIdentityChanges) Object.assign(team, await POOL_STORAGE.api.saveTeamSelection(team));
+      for (const { team } of teamIdentityChanges) Object.assign(team, await POOL_STORAGE.api.saveTeamSelection(team, { adminPassword: ADMIN_PASSWORD }));
     } catch (error) {
       state.teams = teamsBeforeSave;
       showAdminSaveStatus(error.message || "Team- of deelnemersnaam niet opgeslagen; bestaande teamgegevens zijn ongewijzigd gebleven.", "error");
@@ -4973,14 +5023,20 @@ function showAdminSaveStatus(message, type = "pending") {
 }
 
 function recordAdminLog(category, action, detail) {
-  adminLogItems.unshift({
+  const item = {
     createdAt: new Date().toISOString(),
     category,
     action,
     detail
-  });
+  };
+  adminLogItems.unshift(item);
   persistAdminLog();
   renderAdminLog();
+  if (POOL_STORAGE.mode === "api" && adminUnlocked) {
+    POOL_STORAGE.api.appendAdminLog(item, ADMIN_PASSWORD)
+      .then((result) => { runtimeRevision = Math.max(runtimeRevision, Number(result?.revision || 0)); })
+      .catch((error) => console.warn("Adminlogregel kon niet centraal worden toegevoegd.", error));
+  }
 }
 
 function renderAdminLog() {
@@ -5004,6 +5060,7 @@ function renderAdminLog() {
 
 function adminLogCategoryForControl(control) {
   if (control.id === "stakeInput" || control.id === "budgetInput" || control.id === "stageCountInput") return "Instellingen";
+  if (control.id === "selectionDeadlineInput") return "Instellingen";
   if (control.id === "finalPotPercentageInput" || control.id === "dailyPotPercentageInput") return "Prijzenpot";
   if (control.dataset.prizeWeight) return "Prijzenschema";
   if (control.dataset.exchangeWindow) return "Wisselvensters";
@@ -5015,6 +5072,7 @@ function adminLogLabelForControl(control) {
   if (control.id === "stakeInput") return "Inleg per deelnemer";
   if (control.id === "budgetInput") return "BC-budget";
   if (control.id === "stageCountInput") return "Aantal etappes";
+  if (control.id === "selectionDeadlineInput") return "Selectiedeadline";
   if (control.id === "finalPotPercentageInput") return "Percentage eindklassementen";
   if (control.id === "dailyPotPercentageInput") return "Percentage dagprijzen";
   if (control.dataset.prizeWeight) return `Prijzenschema ${control.dataset.prizeWeight}`;
@@ -5033,7 +5091,7 @@ function exportAdminLogCsv() {
   downloadTextFile(`wielerpool-adminlog-${new Date().toISOString().slice(0, 10)}.csv`, `\ufeff${csv}`, "text/csv;charset=utf-8");
 }
 
-async function saveAccessibleTeamToApi() {
+async function saveAccessibleTeamToApi(selectionMode = "initial") {
   if (POOL_STORAGE.mode !== "api") return;
   const team = state.teams.find((item) => participantMatches(item));
   if (!team) throw new Error("Geen actieve selectie.");
@@ -5041,7 +5099,7 @@ async function saveAccessibleTeamToApi() {
   const saved = await POOL_STORAGE.api.saveTeamSelection({
     ...team,
     manualSwaps: (state.manualSwaps || []).filter((swap) => swapMatchesTeam(swap, team, teamIndex))
-  });
+  }, { selectionMode });
   Object.assign(team, saved);
   mergeRemoteManualSwaps([saved]);
   persistState();
@@ -5162,15 +5220,15 @@ async function syncRuntimeFromApi() {
   if (POOL_STORAGE.mode !== "api") return false;
   try {
     const remote = await POOL_STORAGE.api.getRuntimeState();
+    runtimeRevision = Number(remote?.revision || 0);
     if (remote?.state && Object.keys(remote.state).length) {
-      runtimeRevision = Number(remote.revision || 0);
       state = migrateState({ ...remote.state, teams: state.teams });
-      feedbackItems = Array.isArray(remote.feedback) ? remote.feedback : [];
-      adminLogItems = Array.isArray(remote.adminLog) ? remote.adminLog : [];
       POOL_STORAGE.saveState(state);
-      POOL_STORAGE.saveFeedback(feedbackItems);
-      POOL_STORAGE.saveAdminLog(adminLogItems);
     }
+    feedbackItems = Array.isArray(remote?.feedback) ? remote.feedback : [];
+    adminLogItems = Array.isArray(remote?.adminLog) ? remote.adminLog.filter((item) => !isNoisyAdminLogItem(item)) : [];
+    POOL_STORAGE.saveFeedback(feedbackItems);
+    POOL_STORAGE.saveAdminLog(adminLogItems);
     return true;
   } catch (error) {
     console.warn("Online rondegegevens konden niet worden geladen; lokale opslag blijft actief.", error);
@@ -5286,7 +5344,6 @@ function loadFeedback() {
 
 function persistAdminLog() {
   POOL_STORAGE.saveAdminLog(adminLogItems);
-  queueRuntimeSync();
 }
 
 function loadAdminLog() {
