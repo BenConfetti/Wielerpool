@@ -3197,23 +3197,23 @@ function calculateMoney(standings, currentState) {
           details
         });
       }
-      return;
-    }
-    const finalWinners = getTiedLeaders(standings.total[classification.id], classification);
-    const finalPrize = prizeBreakdown.final.find((item) => item.classificationId === classification.id)?.amount || 0;
-    if (finalWinners.length > 0 && finalPotUnlocked) {
-      const finalShare = finalPrize / finalWinners.length;
-      finalWinners.forEach((finalWinner) => {
-        ensureMoneyTeam(money, details, finalWinner.name);
-        money.set(finalWinner.name, money.get(finalWinner.name) + finalShare);
-        details.get(finalWinner.name).push({
-          type: "Eindprijs",
-          source: classification.label,
-          classificationId: classification.id,
-          amount: finalShare,
-          note: finalWinners.length > 1 ? `Gedeelde winnaar eindklassement met ${finalWinners.map((item) => displayTeamName(item.name)).join(", ")}` : "Winnaar eindklassement"
+    } else {
+      const finalWinners = getTiedLeaders(standings.total[classification.id], classification);
+      const finalPrize = prizeBreakdown.final.find((item) => item.classificationId === classification.id)?.amount || 0;
+      if (finalWinners.length > 0 && finalPotUnlocked) {
+        const finalShare = finalPrize / finalWinners.length;
+        finalWinners.forEach((finalWinner) => {
+          ensureMoneyTeam(money, details, finalWinner.name);
+          money.set(finalWinner.name, money.get(finalWinner.name) + finalShare);
+          details.get(finalWinner.name).push({
+            type: "Eindprijs",
+            source: classification.label,
+            classificationId: classification.id,
+            amount: finalShare,
+            note: finalWinners.length > 1 ? `Gedeelde winnaar eindklassement met ${finalWinners.map((item) => displayTeamName(item.name)).join(", ")}` : "Winnaar eindklassement"
+          });
         });
-      });
+      }
     }
 
     const dayPrize = prizeBreakdown.daily.find((item) => item.classificationId === classification.id)?.amount || 0;
