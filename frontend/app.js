@@ -366,6 +366,12 @@ document.getElementById("saveAdminButton")?.addEventListener("click", async () =
   await saveAdminChanges();
 });
 
+els.adminOverviewData?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-delete-admin-team]");
+  if (!button) return;
+  await deleteAdminTeam(button.dataset.deleteAdminTeam);
+});
+
 els.possibleErrorsData?.addEventListener("change", (event) => {
   const checkbox = event.target.closest("[data-error-acknowledgement]");
   if (!checkbox) return;
@@ -4791,6 +4797,7 @@ function renderAdminOverview() {
     <tr>
       <td><input data-admin-team-name="${escapeAttr(teamKey(team))}" value="${escapeAttr(team.name || "")}" aria-label="Deelnemersnaam"></td>
       <td><input data-admin-team-title="${escapeAttr(teamKey(team))}" value="${escapeAttr(team.teamName || "")}" aria-label="Teamnaam"></td>
+      <td><button type="button" class="secondary admin-delete-team" data-delete-admin-team="${escapeAttr(team.id || "")}" ${team.id ? "" : "disabled"}>Verwijderen</button></td>
     </tr>
   `).join("");
   const windows = normalizeExchangeWindows(state.settings.exchangeWindows);
@@ -4814,13 +4821,41 @@ function renderAdminOverview() {
       ${participantRows ? `
         <div class="data-table">
           <table>
-            <thead><tr><th>Naam</th><th>Teamnaam</th></tr></thead>
+            <thead><tr><th>Naam</th><th>Teamnaam</th><th>Actie</th></tr></thead>
             <tbody>${participantRows}</tbody>
           </table>
         </div>
       ` : '<p class="hint">Nog geen deelnemers aangemeld.</p>'}
     </details>
   `;
+}
+
+async function deleteAdminTeam(teamId) {
+  const team = state.teams.find((item) => String(item.id || "") === String(teamId || ""));
+  if (!team) {
+    showAdminSaveStatus("Team niet gevonden; ververs de pagina en probeer opnieuw.", "error");
+    return;
+  }
+  const label = displayTeamWithManager(team);
+  if (!window.confirm(`Weet je zeker dat je ${label} definitief wilt verwijderen? De selectie en wisselhistorie van dit team worden verwijderd.`)) return;
+  try {
+    if (POOL_STORAGE.mode === "api") await POOL_STORAGE.api.deleteTeam(team.id, ADMIN_PASSWORD);
+  } catch (error) {
+    showAdminSaveStatus(error.message || "Team kon niet worden verwijderd; bestaande gegevens zijn behouden.", "error");
+    return;
+  }
+  state.teams = state.teams.filter((item) => String(item.id || "") !== String(team.id));
+  state.manualSwaps = (state.manualSwaps || []).filter((swap) => String(swap.teamId || "") !== String(team.id));
+  state.chartTeams = (state.chartTeams || []).filter((key) => key !== teamKey(team));
+  if (participantAccess && participantMatches(team)) {
+    participantAccess = null;
+    localStorage.removeItem(`${STORAGE_PREFIX}-participant-access`);
+    persistClientState();
+  }
+  try { await refreshRuntimeMetadata(); } catch (error) { console.warn("Team verwijderd, maar de Adminlog kon niet direct worden ververst.", error); }
+  persistState();
+  render();
+  showAdminSaveStatus(`${label} is verwijderd.`, "success");
 }
 
 function lastLoadedStageName() {

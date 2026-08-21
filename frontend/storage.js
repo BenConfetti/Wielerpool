@@ -58,6 +58,7 @@
         getRiders: () => request(`/rounds/${encodeURIComponent(roundId)}/riders`)
         ,listTeams: () => request("/rounds/" + encodeURIComponent(roundId) + "/teams")
         ,saveTeamSelection: (team) => send("/rounds/" + encodeURIComponent(roundId) + "/teams", team)
+        ,deleteTeam: (teamId, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/teams/" + encodeURIComponent(teamId), {}, "DELETE", { "X-Admin-Password": adminPassword })
         ,getRuntimeState: () => request("/rounds/" + encodeURIComponent(roundId) + "/runtime-state")
         ,saveRuntimeState: (payload, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state", payload, "PUT", { "X-Admin-Password": adminPassword })
         ,submitFeedback: (item) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/feedback", item)

@@ -31,6 +31,22 @@ export const repository={
  ,async listTeams(roundId){const x=await query(teamSelect+" WHERE t.round_id=$1 ORDER BY p.display_name,p.team_name",[roundId]);return x.rows.map(mapTeam)}
  ,async findTeam(roundId,participantName,teamName){const x=await query(teamSelect+" WHERE t.round_id=$1 AND lower(btrim(p.display_name))=lower(btrim($2)) AND lower(btrim(p.team_name))=lower(btrim($3))",[roundId,participantName,teamName]);return mapTeam(x.rows[0])}
  ,async getTeam(roundId,teamId){const x=await query(teamSelect+" WHERE t.round_id=$1 AND t.id=$2",[roundId,teamId]);return mapTeam(x.rows[0])}
+ ,async deleteTeam(roundId,teamId){
+  const client=await pool.connect();
+  try{
+   await client.query("BEGIN");
+   const found=await client.query(teamSelect+" WHERE t.round_id=$1 AND t.id=$2",[roundId,teamId]);
+   const team=mapTeam(found.rows[0]);
+   if(!team){await client.query("ROLLBACK");return null}
+   await client.query("DELETE FROM participants WHERE id=(SELECT participant_id FROM teams WHERE round_id=$1 AND id=$2)",[roundId,teamId]);
+   const entry={createdAt:new Date().toISOString(),category:"Teams",action:"Team verwijderd",detail:`${team.teamName} (ploegleider: ${team.name})`};
+   await client.query("SAVEPOINT deleted_team_admin_log");
+   try{await client.query(`INSERT INTO round_runtime_state(round_id,state,feedback,admin_log,revision) VALUES($1,'{}'::jsonb,'[]'::jsonb,jsonb_build_array($2::jsonb),1) ON CONFLICT(round_id) DO UPDATE SET admin_log=jsonb_build_array($2::jsonb)||round_runtime_state.admin_log,revision=round_runtime_state.revision+1,updated_at=now()`,[roundId,JSON.stringify(entry)])}
+   catch(logError){await client.query("ROLLBACK TO SAVEPOINT deleted_team_admin_log");console.error("Team verwijderd, maar Adminlog niet bijgewerkt.",logError)}
+   await client.query("COMMIT");
+   return {id:team.id,name:team.name,teamName:team.teamName};
+  }catch(error){await client.query("ROLLBACK");throw error}finally{client.release()}
+ }
  ,async saveTeam(roundId,team){
   const client=await pool.connect();
   try{

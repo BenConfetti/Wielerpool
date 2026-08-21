@@ -10,7 +10,8 @@ test("teams can be listed, found and saved",async()=>{
   listTeams:async()=>[saved],
   findTeam:async(_round,name,teamName)=>name==="Keje"&&teamName==="Rood"?saved:null,
   getTeam:async()=>saved,
-  saveTeam:async(_round,team)=>({...saved,...team})
+  saveTeam:async(_round,team)=>({...saved,...team}),
+  deleteTeam:async()=>saved
  };
  const server=createApp(repo).listen(0);
  const base=`http://127.0.0.1:${server.address().port}/api/v1/rounds/vuelta-2026/teams`;
@@ -18,6 +19,8 @@ test("teams can be listed, found and saved",async()=>{
  assert.equal((await (await fetch(base+"/lookup?participantName=Keje&teamName=Rood")).json()).id,"team-1");
  assert.equal((await fetch(base,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:"Keje",teamName:"Rood"})})).status,201);
  assert.equal((await fetch(base,{method:"POST",headers:{"content-type":"application/json"},body:"{}"})).status,422);
+ assert.equal((await fetch(base+"/team-1",{method:"DELETE"})).status,403);
+ assert.equal((await fetch(base+"/team-1",{method:"DELETE",headers:{"x-admin-password":"koers"}})).status,200);
  await new Promise(r=>server.close(r));
 });
 test("runtime and browser state can be saved",async()=>{
