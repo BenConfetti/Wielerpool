@@ -97,7 +97,13 @@
     "prices": "./data/vuelta-2026-bc.csv",
     "withdrawals": "./data/vuelta-2026-withdrawals.csv",
     "teams": "./data/vuelta-2026-teams.json",
-    "stages": []
+    "stages": [
+      {
+        "number": 1,
+        "name": "Etappe 1",
+        "results": "./data/vuelta-2026-stage-1-combined.csv"
+      }
+    ]
   },
   "corrections": [],
   "dataVersion": "1",
