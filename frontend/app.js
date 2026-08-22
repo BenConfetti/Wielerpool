@@ -1134,7 +1134,7 @@ function renderTeams() {
       ${renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode)}
     `;
     els.teams.appendChild(wrapper);
-    updateTeamRiderAvailability(index);
+    updateTeamRiderAvailability(index, { preserveRoster: accessMode !== "initial" });
   });
   renderTeamSelectionMatrix();
 }
@@ -3985,7 +3985,7 @@ function serializeSelectedRiders(selector, fallback) {
     }
   }
   const choices = [...document.querySelectorAll(selector)];
-  if (!choices.length) return "";
+  if (!choices.length) return fallback || "";
   return choices
     .map((choice) => {
       const name = choice.dataset.riderName;
