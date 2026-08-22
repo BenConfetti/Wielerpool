@@ -81,6 +81,7 @@ const CLIENT_ID = getOrCreateClientId();
 let runtimeSyncReady = false;
 let runtimeSyncTimer = null;
 let runtimeRevision = 0;
+let runtimeSyncError = "";
 let storageSyncError = "";
 
 const els = {
@@ -2439,9 +2440,10 @@ function renderParticipantTeamsData() {
   els.participantTeamsData.innerHTML = state.teams.map((team) => {
     const active = parseRiderList(team.riders);
     const reserves = parseRiderList(team.reserves);
+    const totalCost = [...active, ...reserves].reduce((sum, rider) => sum + Number(rider.price || 0), 0);
     return `
       <details class="participant-team">
-        <summary>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamWithManager(team))}</summary>
+        <summary>${renderTeamKit(teamKey(team))} <span class="participant-team-name">${escapeHtml(displayTeamWithManager(team))}</span><span class="participant-team-total">Totale ploeg: ${formatNumber(totalCost)} BC</span></summary>
         <div class="participant-grid">
           <div>
             <h4>Starters</h4>
@@ -4997,7 +4999,8 @@ async function saveAdminChanges() {
   persistState();
   clearTimeout(runtimeSyncTimer);
   if (!await saveRuntimeSnapshot({ preserveLocalOnConflict: true })) {
-    showAdminSaveStatus("Niet online opgeslagen. Je invoer staat nog lokaal in dit scherm; probeer Admin opslaan opnieuw.", "error");
+    const detail = runtimeSyncError ? ` (${runtimeSyncError})` : "";
+    showAdminSaveStatus(`Niet online opgeslagen${detail}. Je invoer staat nog lokaal in dit scherm; probeer Admin opslaan opnieuw.`, "error");
     return;
   }
   applyBcPriceOverrides();
@@ -5258,7 +5261,12 @@ async function syncRuntimeFromApi() {
     const remote = await POOL_STORAGE.api.getRuntimeState();
     runtimeRevision = Number(remote?.revision || 0);
     if (remote?.state && Object.keys(remote.state).length) {
-      state = migrateState({ ...remote.state, teams: state.teams });
+      state = migrateState({
+        ...state,
+        ...remote.state,
+        settings: { ...(state.settings || {}), ...(remote.state.settings || {}) },
+        teams: state.teams
+      });
       POOL_STORAGE.saveState(state);
     }
     feedbackItems = Array.isArray(remote?.feedback) ? remote.feedback : [];
@@ -5323,26 +5331,36 @@ async function saveRuntimeSnapshot(options = {}) {
   if (POOL_STORAGE.mode !== "api") return true;
   const runtimeState = structuredClone(state);
   delete runtimeState.teams;
-  try {
-    const saved = await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, feedback: feedbackItems, adminLog: adminLogItems, revision: runtimeRevision }, ADMIN_PASSWORD);
-    runtimeRevision = Number(saved?.revision || runtimeRevision + 1);
-    return true;
-  } catch (error) {
-    if (error.status === 409) {
-      if (options.preserveLocalOnConflict) {
-        console.warn("Online rondegegevens zijn intussen gewijzigd; lokale Admin-invoer blijft staan.", error);
-        return false;
+  runtimeSyncError = "";
+  const attempts = options.preserveLocalOnConflict ? 3 : 1;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const saved = await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, feedback: feedbackItems, adminLog: adminLogItems, revision: runtimeRevision }, ADMIN_PASSWORD);
+      runtimeRevision = Number(saved?.revision || runtimeRevision + 1);
+      return true;
+    } catch (error) {
+      runtimeSyncError = error.message || `API-fout ${error.status || "onbekend"}`;
+      if (error.status === 409 && options.preserveLocalOnConflict) {
+        try {
+          const latest = await POOL_STORAGE.api.getRuntimeState();
+          runtimeRevision = Number(latest?.revision || 0);
+          continue;
+        } catch (refreshError) {
+          runtimeSyncError = refreshError.message || runtimeSyncError;
+        }
+      } else if (error.status === 409) {
+        runtimeSyncReady = false;
+        await syncRuntimeFromApi();
+        runtimeSyncReady = true;
+        render();
+        showAdminSaveStatus("Niet opgeslagen: de online ronde was intussen gewijzigd en is opnieuw geladen.", "error");
       }
-      runtimeSyncReady = false;
-      await syncRuntimeFromApi();
-      runtimeSyncReady = true;
-      render();
-      showAdminSaveStatus("Niet opgeslagen: de online ronde was intussen gewijzigd en is opnieuw geladen.", "error");
+      console.warn("Online rondegegevens konden niet worden opgeslagen; de lokale kopie is behouden.", error);
       return false;
     }
-    console.warn("Online rondegegevens konden niet worden opgeslagen; de lokale kopie is behouden.", error);
-    return false;
   }
+  console.warn("Online rondegegevens veranderden tijdens meerdere opslagpogingen; de lokale Admin-invoer blijft staan.");
+  return false;
 }
 
 async function persistClientState() {
