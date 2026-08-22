@@ -403,10 +403,9 @@ document.getElementById("calculateButton").addEventListener("click", () => {
 document.getElementById("recalculateButton")?.addEventListener("click", async () => {
   if (!adminUnlocked) return;
   saveFromForm();
-  state.stages = state.stages
-    .filter((stage) => getStageNumber(stage.name) >= 2)
-    .sort((a, b) => getStageNumber(a.name) - getStageNumber(b.name));
+  state.stages = state.stages.sort((a, b) => getStageNumber(a.name) - getStageNumber(b.name));
   render();
+  showAdminSaveStatus("Alle standen zijn opnieuw berekend vanaf etappe 1. De etappe-uitslagen zijn behouden.", "success");
 });
 
 document.getElementById("clearDetailButton").addEventListener("click", () => {
