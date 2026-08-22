@@ -60,14 +60,6 @@
               <button id="saveTeamsButton" type="button">Opslaan</button>
             </div>
           </div>
-          <label class="game-change-toggle">
-            <input id="gameChangeModeInput" type="checkbox">
-            Wijzigingen tellen mee voor het spel vanaf nu en komen in de wissellog
-          </label>
-          <label class="game-change-toggle">
-            <input id="restDayOverrideInput" type="checkbox">
-            Test-override: spelwissel toestaan buiten rustdag
-          </label>
           <div id="teamSaveStatus" class="save-status" aria-live="polite"></div>
           <div id="teams"></div>
         </section>
@@ -90,10 +82,6 @@
         <section class="panel results-panel">
           <div class="section-heading">
             <h2>Standen</h2>
-            <div class="button-row">
-              <button id="calculateButton" type="button">Bereken</button>
-              <button id="recalculateButton" type="button" class="secondary">Herbereken vanaf etappe 2</button>
-            </div>
           </div>
           <div id="results" class="results-grid"></div>
         </section>
@@ -249,6 +237,8 @@
             <h2>Admin</h2>
             <div class="button-row">
               <button id="saveAdminButton" type="button">Admin opslaan</button>
+              <button id="calculateButton" type="button" class="secondary">Berekenen</button>
+              <button id="recalculateButton" type="button" class="secondary">Herberekenen vanaf etappe 2</button>
             </div>
           </div>
           <div id="adminSaveStatus" class="save-status" aria-live="polite"></div>
@@ -294,7 +284,7 @@
 
           <details class="admin-collapsible">
             <summary>Wisselvensters</summary>
-            <p class="hint">Per ronde kun je hier instellen wanneer deelnemers hun rustdagwissels mogen opslaan. De test-override in Teamselectie blijft dit omzeilen.</p>
+            <p class="hint">Per ronde kun je hier instellen wanneer deelnemers hun rustdagwissels mogen opslaan.</p>
             <div id="exchangeWindowEditor" class="exchange-window-editor"></div>
           </details>
 

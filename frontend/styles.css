@@ -364,22 +364,6 @@ label {
   font-weight: 700;
 }
 
-.game-change-toggle {
-  align-items: center;
-  background: #f8fbff;
-  border: 1px solid #cfe0f2;
-  color: #123;
-  display: flex;
-  gap: 6px;
-  justify-content: flex-start;
-  margin: 3px 0 5px;
-  padding: 5px 7px;
-}
-
-.game-change-toggle input {
-  margin: 0;
-}
-
 .rider-status-badge {
   background: #fee2e2;
   border: 1px solid #b91c1c;
@@ -1803,6 +1787,28 @@ tbody tr:hover {
   width: auto;
 }
 
+.team-post-deadline {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.team-post-deadline > .hint {
+  background: #f4f7fb;
+  border: 1px solid var(--strong-line);
+  margin: 0 0 6px;
+  padding: 6px 8px;
+}
+
+.team-exchange-open > .hint {
+  background: #e8f5e9;
+  border-color: #3ba74f;
+}
+
+.roster-row-locked {
+  cursor: default;
+}
+
 .rider-choice input.choice-limit-reached:not(:disabled) {
   cursor: pointer;
   filter: grayscale(1);
@@ -2432,13 +2438,6 @@ tbody tr:hover {
   .prize-pot-summary,
   .detail-two-columns,
   .chart-team-picker { grid-template-columns: minmax(0, 1fr); }
-  .game-change-toggle {
-    grid-template-columns: 28px minmax(0, 1fr);
-    line-height: 1.35;
-    min-height: 48px;
-    padding: 7px 9px;
-  }
-  .game-change-toggle input { min-height: 24px; width: 24px; }
   .prize-weight-editor,
   .prize-pot-overview,
   .exchange-window-editor,

@@ -20,6 +20,7 @@ export function createApp(repository, options = {}) {
   app.get("/api/v1/rounds/:roundId/runtime-state",async(q,r,n)=>{try{r.json(await repository.getRuntimeState(q.params.roundId))}catch(e){n(e)}});
   app.put("/api/v1/rounds/:roundId/runtime-state",requireAdmin,async(q,r,n)=>{try{r.json(await repository.saveRuntimeState(q.params.roundId,q.body||{}))}catch(e){n(e)}});
   app.post("/api/v1/rounds/:roundId/runtime-state/feedback",async(q,r,n)=>{try{r.status(201).json(await repository.appendFeedback(q.params.roundId,q.body||{}))}catch(e){n(e)}});
+  app.delete("/api/v1/rounds/:roundId/runtime-state/feedback",requireAdmin,async(q,r,n)=>{try{r.json(await repository.clearFeedback(q.params.roundId))}catch(e){n(e)}});
   app.post("/api/v1/rounds/:roundId/runtime-state/admin-log",requireAdmin,async(q,r,n)=>{try{r.status(201).json(await repository.appendAdminLog(q.params.roundId,q.body||{}))}catch(e){n(e)}});
   app.delete("/api/v1/rounds/:roundId/runtime-state/admin-log",requireAdmin,async(q,r,n)=>{try{r.json(await repository.clearAdminLog(q.params.roundId))}catch(e){n(e)}});
   app.get("/api/v1/rounds/:roundId/client-state/:clientId",async(q,r,n)=>{try{r.json(await repository.getClientState(q.params.roundId,q.params.clientId))}catch(e){n(e)}});

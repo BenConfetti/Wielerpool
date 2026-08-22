@@ -65,6 +65,7 @@
         ,getRuntimeState: () => request("/rounds/" + encodeURIComponent(roundId) + "/runtime-state")
         ,saveRuntimeState: (payload, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state", payload, "PUT", { "X-Admin-Password": adminPassword })
         ,submitFeedback: (item) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/feedback", item)
+        ,clearFeedback: (adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/feedback", {}, "DELETE", { "X-Admin-Password": adminPassword })
         ,appendAdminLog: (item, adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/admin-log", item, "POST", { "X-Admin-Password": adminPassword })
         ,clearAdminLog: (adminPassword) => send("/rounds/" + encodeURIComponent(roundId) + "/runtime-state/admin-log", {}, "DELETE", { "X-Admin-Password": adminPassword })
         ,getClientState: (clientId) => request("/rounds/" + encodeURIComponent(roundId) + "/client-state/" + encodeURIComponent(clientId))

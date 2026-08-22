@@ -98,8 +98,6 @@ const els = {
   participantAccessStatus: document.getElementById("participantAccessStatus"),
   selectionDeadlineHint: document.getElementById("selectionDeadlineHint"),
   closeSelection: document.getElementById("closeSelectionButton"),
-  gameChangeMode: document.getElementById("gameChangeModeInput"),
-  restDayOverride: document.getElementById("restDayOverrideInput"),
   stages: document.getElementById("stages"),
   results: document.getElementById("results"),
   details: document.getElementById("details"),
@@ -201,8 +199,12 @@ document.getElementById("saveTeamsButton")?.addEventListener("click", async () =
     showTeamSaveStatus(`Niet opgeslagen: ${errors.join(" ")}`, "error");
     return;
   }
-  const gameChangeRequested = Boolean(els.gameChangeMode?.checked);
-  const gameChangeMode = gameChangeRequested && hasLoadedStageResults();
+  const accessMode = participantSelectionAccessMode();
+  if (accessMode === "locked") {
+    showTeamSaveStatus("De selectiedeadline is verstreken. Wijzigen kan alleen tijdens een geopend wisselvenster.", "error");
+    return;
+  }
+  const gameChangeMode = accessMode === "exchange";
   if (!gameChangeMode && !isInitialSelectionOpen()) {
     showTeamSaveStatus(`Niet opgeslagen: de deadline voor vrije selectiewijzigingen was ${formatSelectionDeadline()}.`, "error");
     return;
@@ -210,7 +212,7 @@ document.getElementById("saveTeamsButton")?.addEventListener("click", async () =
   const pendingTeamChanges = collectPendingTeamChanges();
   if (gameChangeMode && pendingTeamChanges.length && !isManualSwapAllowedNow()) {
     const moment = getManualSwapMoment();
-    showTeamSaveStatus(`Niet opgeslagen: spelwissels mogen alleen na etappe ${REST_DAY_AFTER_STAGES.join(" of na etappe ")}. Huidig moment: ${moment.label}. Gebruik de test-override als je dit nu toch wilt testen.`, "error");
+    showTeamSaveStatus(`Niet opgeslagen: spelwissels mogen alleen binnen een ingesteld wisselvenster. Huidig moment: ${moment.label}.`, "error");
     return;
   }
   saveFromForm();
@@ -392,11 +394,13 @@ document.getElementById("addStageButton")?.addEventListener("click", () => {
 });
 
 document.getElementById("calculateButton").addEventListener("click", () => {
+  if (!adminUnlocked) return;
   saveFromForm();
   renderResults();
 });
 
 document.getElementById("recalculateButton")?.addEventListener("click", async () => {
+  if (!adminUnlocked) return;
   saveFromForm();
   state.stages = state.stages
     .filter((stage) => getStageNumber(stage.name) >= 2)
@@ -424,9 +428,18 @@ document.getElementById("exportFeedbackButton")?.addEventListener("click", () =>
   exportFeedbackCsv();
 });
 
-document.getElementById("clearFeedbackButton")?.addEventListener("click", () => {
+document.getElementById("clearFeedbackButton")?.addEventListener("click", async () => {
   if (!feedbackItems.length) return;
   if (!confirm("Alle centraal opgeslagen feedback wissen?")) return;
+  try {
+    if (POOL_STORAGE.mode === "api") {
+      const result = await POOL_STORAGE.api.clearFeedback(ADMIN_PASSWORD);
+      runtimeRevision = Math.max(runtimeRevision, Number(result?.revision || 0));
+    }
+  } catch (error) {
+    showFeedbackStatus(error.message || "Feedback kon niet worden gewist.", "error");
+    return;
+  }
   feedbackItems = [];
   persistFeedback();
   renderFeedback();
@@ -546,7 +559,7 @@ function renderRoundIntro() {
         <ul>
           <li>Per etappe tellen de beste vijf actieve renners per team mee voor algemeen, punten en berg. Bij jongeren tellen alleen de beste drie jongeren mee.</li>
           <li>DNF, OTL, DSQ en OUT gelden vanaf de volgende etappe. DNS geldt vanaf dezelfde etappe.</li>
-          <li>Rustdagwissels mogen alleen binnen de ingestelde wisselvensters in Admin, behalve als de test-override aan staat.</li>
+          <li>Rustdagwissels mogen alleen binnen de ingestelde wisselvensters in Admin.</li>
         </ul>
       </section>`;
     return;
@@ -1071,10 +1084,12 @@ function renderParticipantAccess() {
   if (participantAccess && !accessibleTeam) participantAccess = null;
   if (els.participantName && participantAccess) els.participantName.value = participantAccess.name;
   if (els.participantTeamName && participantAccess) els.participantTeamName.value = participantAccess.teamName;
+  const accessMode = participantSelectionAccessMode();
   els.closeSelection?.classList.toggle("is-hidden", !participantAccess);
-  document.getElementById("saveTeamsButton")?.classList.toggle("is-hidden", !participantAccess);
-  document.querySelectorAll(".game-change-toggle").forEach((element) => element.classList.toggle("is-hidden", !participantAccess));
+  document.getElementById("saveTeamsButton")?.classList.toggle("is-hidden", !participantAccess || accessMode === "locked");
   if (!participantAccess) showParticipantAccessStatus(storageSyncError || "Haal je selectie op of maak een nieuwe selectie om te beginnen.", storageSyncError ? "error" : "pending");
+  else if (accessMode === "exchange") showParticipantAccessStatus("Het wisselvenster is open. Je kunt alleen je gekozen renners tussen startteam en reserves verschuiven; nieuwe renners toevoegen is niet mogelijk.", "success");
+  else if (accessMode === "locked") showParticipantAccessStatus(`De selectiedeadline is verstreken. Je selectie is alleen-lezen tot een wisselvenster opent.`, "pending");
 }
 
 function showParticipantAccessStatus(message, type = "") {
@@ -1093,6 +1108,7 @@ function renderTeams() {
     .map((team, index) => ({ team, index }))
     .filter(({ team }) => participantMatches(team));
   if (!accessibleEntries.length) return;
+  const accessMode = participantSelectionAccessMode();
   accessibleEntries.forEach(({ team, index }) => {
     const active = padRiderSlots(parseRiderList(team.riders), STARTER_COUNT);
     const reserve = padRiderSlots(parseRiderList(team.reserves), RESERVE_COUNT);
@@ -1115,44 +1131,7 @@ function renderTeams() {
           <div class="team-selection-metric ${initialBudget.overBudget ? "over" : "budget-left"}" data-budget-status="${index}">${formatBudgetStatus(initialBudget)}</div>
         </div>
       </header>
-      <details class="team-editor">
-        <summary>Aanpassen</summary>
-        <div class="team-grid">
-          <label>
-            Deelnemer
-            <input data-team-name="${index}" value="${escapeAttr(team.name)}" readonly>
-          </label>
-          <label>
-            Teamnaam
-            <input data-team-title="${index}" value="${escapeAttr(team.teamName || "")}" readonly>
-          </label>
-          <label>
-            Kleur 1
-            <input data-team-color1="${index}" type="color" value="${escapeAttr(team.color1 || "#f6d32d")}">
-          </label>
-          <label>
-            Kleur 2
-            <input data-team-color2="${index}" type="color" value="${escapeAttr(team.color2 || "#ffffff")}">
-          </label>
-          <p data-color-status="${index}" class="color-status ${validateTeamColors(team.color1, team.color2).valid ? "" : "color-status-error"}">${escapeHtml(validateTeamColors(team.color1, team.color2).message)}</p>
-        </div>
-        <div class="team-picker-grid">
-          <details class="rider-overview-section team-selection-collapsible" open>
-            <summary>Startlijst <span data-active-count-inline="${index}">${initialBudget.activeCount}/${STARTER_COUNT} starters</span> <span data-reserve-count-inline="${index}">${initialBudget.reserveCount}/${RESERVE_COUNT} reserves</span></summary>
-            ${renderRiderTeamOverview(index, active, reserve)}
-          </details>
-          <details class="selected-roster-section team-selection-collapsible" open>
-            <summary>Geselecteerde ploeg</summary>
-            <div class="selected-roster-heading">
-              <button type="button" class="secondary clear-team-riders-button" data-clear-team-riders="${index}">Verwijder alle renners uit mijn selectie</button>
-            </div>
-            <div data-selected-roster="${index}">
-              ${renderSelectedRosterPanel(index, active, reserve)}
-            </div>
-          </details>
-        </div>
-        <p data-rider-status="${index}" class="rider-status ${validateTeamRidersFromLists(active, reserve).valid ? "" : "rider-status-error"}">${escapeHtml(validateTeamRidersFromLists(active, reserve).message)}</p>
-      </details>
+      ${renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode)}
     `;
     els.teams.appendChild(wrapper);
     updateTeamRiderAvailability(index);
@@ -1305,16 +1284,17 @@ function renderRiderTeamOverview(teamIndex, activeRiders, reserveRiders) {
   `;
 }
 
-function renderSelectedRosterPanel(teamIndex, activeRiders, reserveRiders) {
+function renderSelectedRosterPanel(teamIndex, activeRiders, reserveRiders, options = {}) {
+  const editable = options.editable !== false;
   return `
     <div class="selected-roster-grid">
-      ${renderRosterList(teamIndex, "rider", "Startteam", activeRiders, STARTER_COUNT)}
-      ${renderRosterList(teamIndex, "reserve", "Reserves", reserveRiders, RESERVE_COUNT)}
+      ${renderRosterList(teamIndex, "rider", "Startteam", activeRiders, STARTER_COUNT, { editable })}
+      ${renderRosterList(teamIndex, "reserve", "Reserves", reserveRiders, RESERVE_COUNT, { editable })}
     </div>
   `;
 }
 
-function renderRosterList(teamIndex, kind, title, riders, targetCount) {
+function renderRosterList(teamIndex, kind, title, riders, targetCount, options = {}) {
   const rows = riders
     .filter((rider) => rider.name)
     .map((rider, index) => ({
@@ -1328,16 +1308,17 @@ function renderRosterList(teamIndex, kind, title, riders, targetCount) {
     <div class="roster-column roster-column-${kind}">
       <h5>${escapeHtml(title)} <span>${rows.length}/${targetCount}</span></h5>
       <div class="roster-list" data-roster-list="${teamIndex}" data-roster-kind="${kind}">
-        ${rows.length ? rows.map((rider, index) => renderRosterRow(teamIndex, kind, rider, index + 1)).join("") : "<p class=\"hint roster-empty\">Nog geen renners gekozen.</p>"}
+        ${rows.length ? rows.map((rider, index) => renderRosterRow(teamIndex, kind, rider, index + 1, options)).join("") : "<p class=\"hint roster-empty\">Nog geen renners gekozen.</p>"}
       </div>
     </div>
   `;
 }
 
-function renderRosterRow(teamIndex, kind, rider, position) {
+function renderRosterRow(teamIndex, kind, rider, position, options = {}) {
+  const editable = options.editable !== false;
   return `
-    <div class="roster-row ${rider.youth ? "rider-choice-youth" : ""}" draggable="true" data-roster-team="${teamIndex}" data-roster-kind="${kind}" data-roster-rider="${escapeAttr(rider.name)}" data-price="${Number(rider.price || 0)}" data-youth="${rider.youth ? "1" : "0"}">
-      <span class="roster-grip" aria-hidden="true">&#8597;</span>
+    <div class="roster-row ${rider.youth ? "rider-choice-youth" : ""} ${editable ? "" : "roster-row-locked"}" draggable="${editable ? "true" : "false"}" data-roster-team="${teamIndex}" data-roster-kind="${kind}" data-roster-rider="${escapeAttr(rider.name)}" data-price="${Number(rider.price || 0)}" data-youth="${rider.youth ? "1" : "0"}">
+      <span class="roster-grip" aria-hidden="true">${editable ? "&#8597;" : ""}</span>
       <span class="roster-position">${position}</span>
       <span class="roster-name">${escapeHtml(rider.displayName)}</span>
       <span class="roster-price">${formatNumber(Number(rider.price || 0))}</span>
@@ -1700,7 +1681,6 @@ function getManualSwapMoment() {
 
 function isManualSwapAllowedNow() {
   const moment = getManualSwapMoment();
-  if (els.restDayOverride?.checked) return true;
   return activeExchangeWindowForMoment(moment);
 }
 
@@ -2163,8 +2143,44 @@ async function renderCombinedRiderData() {
   els.startlistData.innerHTML = renderDataTable(rows);
 }
 
-function hasLoadedStageResults() {
-  return (state.stages || []).some((stage) => String(stage.results || "").trim());
+function renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode) {
+  if (accessMode !== "initial") {
+    const editable = accessMode === "exchange";
+    return `
+      <div class="team-post-deadline ${editable ? "team-exchange-open" : "team-selection-locked"}">
+        <p class="hint">${editable ? "Wisselvenster open: sleep renners tussen startteam en reserves. Je kunt geen andere renners aan je selectie toevoegen." : "Selectie gesloten: hieronder staat je definitieve ploeg. Tijdens een geopend wisselvenster kun je renners tussen startteam en reserves verschuiven."}</p>
+        <div class="is-hidden">
+          <input data-team-name="${index}" value="${escapeAttr(team.name)}">
+          <input data-team-title="${index}" value="${escapeAttr(team.teamName || "")}">
+          <input data-team-color1="${index}" value="${escapeAttr(team.color1 || "#f6d32d")}">
+          <input data-team-color2="${index}" value="${escapeAttr(team.color2 || "#ffffff")}">
+        </div>
+        <div data-selected-roster="${index}">${renderSelectedRosterPanel(index, active, reserve, { editable })}</div>
+      </div>`;
+  }
+  return `
+    <details class="team-editor">
+      <summary>Aanpassen</summary>
+      <div class="team-grid">
+        <label>Deelnemer<input data-team-name="${index}" value="${escapeAttr(team.name)}" readonly></label>
+        <label>Teamnaam<input data-team-title="${index}" value="${escapeAttr(team.teamName || "")}" readonly></label>
+        <label>Kleur 1<input data-team-color1="${index}" type="color" value="${escapeAttr(team.color1 || "#f6d32d")}"></label>
+        <label>Kleur 2<input data-team-color2="${index}" type="color" value="${escapeAttr(team.color2 || "#ffffff")}"></label>
+        <p data-color-status="${index}" class="color-status ${validateTeamColors(team.color1, team.color2).valid ? "" : "color-status-error"}">${escapeHtml(validateTeamColors(team.color1, team.color2).message)}</p>
+      </div>
+      <div class="team-picker-grid">
+        <details class="rider-overview-section team-selection-collapsible" open>
+          <summary>Startlijst <span data-active-count-inline="${index}">${initialBudget.activeCount}/${STARTER_COUNT} starters</span> <span data-reserve-count-inline="${index}">${initialBudget.reserveCount}/${RESERVE_COUNT} reserves</span></summary>
+          ${renderRiderTeamOverview(index, active, reserve)}
+        </details>
+        <details class="selected-roster-section team-selection-collapsible" open>
+          <summary>Geselecteerde ploeg</summary>
+          <div class="selected-roster-heading"><button type="button" class="secondary clear-team-riders-button" data-clear-team-riders="${index}">Verwijder alle renners uit mijn selectie</button></div>
+          <div data-selected-roster="${index}">${renderSelectedRosterPanel(index, active, reserve)}</div>
+        </details>
+      </div>
+      <p data-rider-status="${index}" class="rider-status ${validateTeamRidersFromLists(active, reserve).valid ? "" : "rider-status-error"}">${escapeHtml(validateTeamRidersFromLists(active, reserve).message)}</p>
+    </details>`;
 }
 
 function isInitialSelectionOpen() {
@@ -2176,6 +2192,11 @@ function formatSelectionDeadline() {
   const deadline = getSelectionDeadline();
   if (!deadline || Number.isNaN(deadline.getTime())) return "de ingestelde deadline";
   return new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Amsterdam" }).format(deadline);
+}
+
+function participantSelectionAccessMode() {
+  if (isInitialSelectionOpen()) return "initial";
+  return isManualSwapAllowedNow() ? "exchange" : "locked";
 }
 
 function getSelectionDeadline() {
@@ -4838,8 +4859,6 @@ function unlockAdmin() {
   }
   adminUnlocked = true;
   sessionStorage.setItem(`${STORAGE_PREFIX}-admin-unlocked`, "1");
-  recordAdminLog("Admin", "Admin geopend", "Adminpaneel geopend in deze browsersessie.");
-  queueRuntimeSync();
   renderAdminAccess();
   renderAdminLog();
 }
@@ -4873,7 +4892,7 @@ function renderAdminOverview() {
       <article><strong>Wisselvenster</strong><span>${openWindow ? `${escapeHtml(openWindow.label)} is open` : "Geen venster open"}</span></article>
       <article><strong>Feedback</strong><span>${formatNumber(feedbackItems.length)} inzendingen</span></article>
       <article><strong>Adminlog</strong><span>${formatNumber(adminLogItems.length)} wijzigingen</span></article>
-      <article><strong>Herberekenen</strong><span>Gebruik Stand > Herbereken vanaf etappe 2 na team- of regelwijzigingen.</span></article>
+      <article><strong>Rekenen</strong><span>Gebruik de knoppen bovenaan Admin na uitslag-, team- of regelwijzigingen.</span></article>
     </div>
     <details class="admin-participants admin-collapsible">
       <summary>Deelnemers (${formatNumber(state.teams.length)})</summary>
@@ -4976,6 +4995,11 @@ async function saveAdminChanges() {
   }
   const archivedErrorCount = archiveCheckedPossibleErrors();
   persistState();
+  clearTimeout(runtimeSyncTimer);
+  if (!await saveRuntimeSnapshot({ preserveLocalOnConflict: true })) {
+    showAdminSaveStatus("Niet online opgeslagen. Je invoer staat nog lokaal in dit scherm; probeer Admin opslaan opnieuw.", "error");
+    return;
+  }
   applyBcPriceOverrides();
   changes.forEach((change) => {
     recordAdminLog(change.category, change.action, `${change.before} -> ${change.after}`);
@@ -5295,22 +5319,29 @@ function queueRuntimeSync() {
   runtimeSyncTimer = setTimeout(saveRuntimeSnapshot, 300);
 }
 
-async function saveRuntimeSnapshot() {
+async function saveRuntimeSnapshot(options = {}) {
+  if (POOL_STORAGE.mode !== "api") return true;
   const runtimeState = structuredClone(state);
   delete runtimeState.teams;
   try {
     const saved = await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, feedback: feedbackItems, adminLog: adminLogItems, revision: runtimeRevision }, ADMIN_PASSWORD);
     runtimeRevision = Number(saved?.revision || runtimeRevision + 1);
+    return true;
   } catch (error) {
     if (error.status === 409) {
+      if (options.preserveLocalOnConflict) {
+        console.warn("Online rondegegevens zijn intussen gewijzigd; lokale Admin-invoer blijft staan.", error);
+        return false;
+      }
       runtimeSyncReady = false;
       await syncRuntimeFromApi();
       runtimeSyncReady = true;
       render();
       showAdminSaveStatus("Niet opgeslagen: de online ronde was intussen gewijzigd en is opnieuw geladen.", "error");
-      return;
+      return false;
     }
     console.warn("Online rondegegevens konden niet worden opgeslagen; de lokale kopie is behouden.", error);
+    return false;
   }
 }
 
@@ -5346,7 +5377,6 @@ function loadState() {
 
 function persistFeedback() {
   POOL_STORAGE.saveFeedback(feedbackItems);
-  queueRuntimeSync();
 }
 
 function loadFeedback() {

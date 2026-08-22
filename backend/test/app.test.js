@@ -26,7 +26,7 @@ test("teams can be listed, found and saved",async()=>{
 });
 test("runtime and browser state can be saved",async()=>{
  let runtime=null; let clientState=null;
- const repo={health:async()=>{},getRound:async()=>({id:"vuelta-2026"}),listParticipants:async()=>[],listRiders:async()=>[],listTeams:async()=>[],getRuntimeState:async()=>runtime,saveRuntimeState:async(_round,payload)=>(runtime=payload),appendFeedback:async()=>({revision:2}),appendAdminLog:async()=>({revision:3}),clearAdminLog:async()=>({revision:4}),getClientState:async()=>clientState,saveClientState:async(_round,_client,payload)=>(clientState=payload)};
+ const repo={health:async()=>{},getRound:async()=>({id:"vuelta-2026"}),listParticipants:async()=>[],listRiders:async()=>[],listTeams:async()=>[],getRuntimeState:async()=>runtime,saveRuntimeState:async(_round,payload)=>(runtime=payload),appendFeedback:async()=>({revision:2}),clearFeedback:async()=>({revision:3}),appendAdminLog:async()=>({revision:4}),clearAdminLog:async()=>({revision:5}),getClientState:async()=>clientState,saveClientState:async(_round,_client,payload)=>(clientState=payload)};
  const server=createApp(repo).listen(0);
  const base=`http://127.0.0.1:${server.address().port}/api/v1/rounds/vuelta-2026`;
  const runtimePayload={state:{settings:{stake:12}},feedback:[{text:"Test"}],adminLog:[{action:"Gewijzigd"}]};
@@ -34,6 +34,8 @@ test("runtime and browser state can be saved",async()=>{
  assert.equal((await fetch(base+"/runtime-state",{method:"PUT",headers:{"content-type":"application/json","x-admin-password":"koers"},body:JSON.stringify(runtimePayload)})).status,200);
  assert.deepEqual(await (await fetch(base+"/runtime-state")).json(),runtimePayload);
  assert.equal((await fetch(base+"/runtime-state/feedback",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:"Test"})})).status,201);
+ assert.equal((await fetch(base+"/runtime-state/feedback",{method:"DELETE"})).status,403);
+ assert.equal((await fetch(base+"/runtime-state/feedback",{method:"DELETE",headers:{"x-admin-password":"koers"}})).status,200);
  assert.equal((await fetch(base+"/runtime-state/admin-log",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"Test"})})).status,403);
  assert.equal((await fetch(base+"/runtime-state/admin-log",{method:"POST",headers:{"content-type":"application/json","x-admin-password":"koers"},body:JSON.stringify({action:"Test"})})).status,201);
  const access={participantAccess:{name:"Keje",teamName:"Team"},uiState:{tab:"admin"}};
