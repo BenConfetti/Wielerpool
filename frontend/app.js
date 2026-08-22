@@ -5335,7 +5335,7 @@ async function saveRuntimeSnapshot(options = {}) {
   const attempts = options.preserveLocalOnConflict ? 3 : 1;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      const saved = await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, feedback: feedbackItems, adminLog: adminLogItems, revision: runtimeRevision }, ADMIN_PASSWORD);
+      const saved = await POOL_STORAGE.api.saveRuntimeState({ state: runtimeState, revision: runtimeRevision }, ADMIN_PASSWORD);
       runtimeRevision = Number(saved?.revision || runtimeRevision + 1);
       return true;
     } catch (error) {

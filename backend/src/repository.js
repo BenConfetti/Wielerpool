@@ -19,7 +19,7 @@ export const repository={
  async getRuntimeState(roundId){const x=await query('SELECT state,feedback,admin_log "adminLog",revision,updated_at "updatedAt" FROM round_runtime_state WHERE round_id=$1',[roundId]);return x.rows[0]||null},
  async saveRuntimeState(roundId,payload){
   const expected=Number(payload.revision||0);
-  const x=await query(`INSERT INTO round_runtime_state(round_id,state,feedback,admin_log,revision) VALUES($1,$2,$3,$4,1) ON CONFLICT(round_id) DO UPDATE SET state=EXCLUDED.state,revision=round_runtime_state.revision+1,updated_at=now() WHERE round_runtime_state.revision=$5 RETURNING state,feedback,admin_log "adminLog",revision,updated_at "updatedAt"`,[roundId,payload.state||{},payload.feedback||[],payload.adminLog||[],expected]);
+  const x=await query(`INSERT INTO round_runtime_state(round_id,state,feedback,admin_log,revision) VALUES($1,$2,'[]'::jsonb,'[]'::jsonb,1) ON CONFLICT(round_id) DO UPDATE SET state=EXCLUDED.state,revision=round_runtime_state.revision+1,updated_at=now() WHERE round_runtime_state.revision=$3 RETURNING state,feedback,admin_log "adminLog",revision,updated_at "updatedAt"`,[roundId,payload.state||{},expected]);
   if(!x.rows[0]){const error=new Error("Rondegegevens zijn intussen gewijzigd.");error.code="RUNTIME_CONFLICT";throw error}
   return x.rows[0]
  },
