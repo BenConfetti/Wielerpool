@@ -107,6 +107,12 @@
         "number": 2,
         "name": "Etappe 2",
         "results": "./data/vuelta-2026-stage-2-combined.csv"
+      },
+      {
+        "number": 3,
+        "name": "Etappe 3",
+        "results": "./data/vuelta-2026-stage-3-cancelled.csv",
+        "cancelled": true
       }
     ]
   },

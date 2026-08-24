@@ -39,3 +39,12 @@ test("handmatige wissels horen alleen bij rustdagen", () => {
   assert.equal(logic.isConfiguredRestDaySwap(1, windows), false);
   assert.equal(logic.isConfiguredRestDaySwap(9, windows), true);
 });
+
+test("een geannuleerde etappe behoudt klassementsprijzen maar heeft geen ritprijs", () => {
+  assert.deepEqual(logic.stagePolicy({ cancelled: true, results: "" }), {
+    completed: true,
+    scoreRiders: false,
+    awardClassificationLeaders: true,
+    awardStageWinner: false
+  });
+});

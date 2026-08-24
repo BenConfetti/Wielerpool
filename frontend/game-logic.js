@@ -32,6 +32,16 @@
     isConfiguredRestDaySwap(afterStage, exchangeWindows = []) {
       return exchangeWindows.some((window) => Number(window?.afterStage) === Number(afterStage));
     },
+    stagePolicy(stage = {}) {
+      const cancelled = stage.cancelled === true;
+      const completed = cancelled || Boolean(String(stage.results || "").trim());
+      return {
+        completed,
+        scoreRiders: completed && !cancelled,
+        awardClassificationLeaders: completed,
+        awardStageWinner: completed && !cancelled
+      };
+    },
     selfTest() {
       const results = [];
       const check = (name, condition) => results.push({ name, passed: Boolean(condition) });

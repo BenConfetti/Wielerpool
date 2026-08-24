@@ -600,6 +600,16 @@ textarea {
   font-weight: 900;
 }
 
+.stage-strip-cancelled {
+  background: #f3f4f6;
+  border-top-color: #6b7280;
+  color: #6b7280;
+}
+
+.stage-strip-cancelled svg {
+  opacity: .35;
+}
+
 .stage-strip-item small {
   color: var(--muted);
   font-size: 10px;
@@ -1024,11 +1034,27 @@ textarea {
 }
 
 .detail-box {
-  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .detail-box h3 {
+  font-size: 13px;
   margin: 0 0 4px;
+}
+
+.detail-box table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.detail-box th,
+.detail-box td {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  padding: 2px 4px;
+  white-space: normal;
 }
 
 .detail-table {
@@ -1124,11 +1150,12 @@ textarea {
 
 .classification-progress-detail-rider {
   grid-template-columns: 1fr;
-  overflow-x: auto;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .classification-progress-detail-rider table {
-  min-width: 760px;
+  min-width: 0;
 }
 
 .detail-theme-general,
@@ -2477,7 +2504,7 @@ tbody tr:hover {
   .exchange-window-editor table,
   .feedback-list table,
   .team-selection-matrix table,
-  .detail-box table { min-width: 640px; }
+  .detail-box table { min-width: 0; }
   .data-table th:first-child,
   .data-table td:first-child,
   .bc-price-editor th:first-child,
@@ -2545,6 +2572,8 @@ tbody tr:hover {
   .standing th, .standing td { font-size: 10px; padding: 2px 3px; }
   .standing .detail-open { font-size: 10px; padding: 0; }
   .standing h3 { font-size: 12px; padding: 4px; }
+  .detail-box h3 { font-size: 12px; }
+  .detail-box th, .detail-box td { font-size: 10px; line-height: 1.15; padding: 2px 3px; }
   .progress-stage-grid { grid-template-columns: minmax(0, 1fr); }
   .progress-team { padding: 2px; }
   .progress-classifications { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; }

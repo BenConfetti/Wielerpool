@@ -48,7 +48,8 @@ const DATA_VERSION = `${ROUND_CONFIG.id || "round"}-${ROUND_CONFIG.dataVersion |
 const WITHDRAWAL_FILE = ROUND_FILES.withdrawals || "";
 const OFFICIAL_STAGE_FILES = (ROUND_FILES.stages || []).map((stage) => ({
   name: stage.name || `Etappe ${stage.number}`,
-  url: stage.results
+  url: stage.results,
+  cancelled: stage.cancelled === true
 }));
 const TOUR_STAGES = ROUND_CONFIG.stageSchedule || [];
 const PRICE_VERSION = String(ROUND_CONFIG.priceVersion || "");
@@ -888,7 +889,8 @@ async function loadOfficialStages(options = {}) {
     stages.push({
       name: stage.name,
       results: importStageCsv(csv),
-      importCsv: csv
+      importCsv: csv,
+      cancelled: stage.cancelled
     });
   }
   if (stages.length > 0) {
@@ -1668,7 +1670,7 @@ function applyRetroactiveTeamChanges(changes) {
 }
 
 function getManualSwapMoment() {
-  const loadedStages = (state.stages || []).filter((stage) => String(stage.results || "").trim());
+  const loadedStages = (state.stages || []).filter(isCompletedStage);
   const lastStage = loadedStages
     .sort((a, b) => getStageNumber(a.name) - getStageNumber(b.name))
     .at(-1);
@@ -1948,7 +1950,7 @@ function renderResults() {
 
 function renderStageBar(stages) {
   const loadedStageNumbers = new Set(stages
-    .filter((stage) => stage.results?.trim())
+    .filter(isCompletedStage)
     .map((stage) => getStageNumber(stage.name))
     .filter(Number.isFinite));
   const latestStageNumber = [...loadedStageNumbers].reduce((latest, stageNumber) => Math.max(latest, stageNumber), 0);
@@ -1962,7 +1964,8 @@ function renderStageBar(stages) {
     <div class="stage-strip-track">
       ${TOUR_STAGES.map((stage) => renderStageStripItem(stage, {
         loaded: loadedStageNumbers.has(stage.number),
-        current: stage.number === latestStageNumber
+        current: stage.number === latestStageNumber,
+        cancelled: stages.some((loadedStage) => getStageNumber(loadedStage.name) === stage.number && isCancelledStage(loadedStage))
       })).join("")}
     </div>
   `;
@@ -1970,12 +1973,14 @@ function renderStageBar(stages) {
 }
 
 function renderStageStripItem(stage, status) {
-  const title = `Etappe ${stage.number}: ${stage.label} - ${stage.route} - ${stage.km} km`;
+  const title = status.cancelled
+    ? `Etappe ${stage.number}: geannuleerd`
+    : `Etappe ${stage.number}: ${stage.label} - ${stage.route} - ${stage.km} km`;
   return `
-    <article class="stage-strip-item stage-strip-${stage.type} ${status.current ? "stage-strip-current" : ""} ${status.loaded ? "stage-strip-loaded" : "stage-strip-pending"}" title="${escapeAttr(title)}">
+    <article class="stage-strip-item stage-strip-${stage.type} ${status.cancelled ? "stage-strip-cancelled" : ""} ${status.current ? "stage-strip-current" : ""} ${status.loaded ? "stage-strip-loaded" : "stage-strip-pending"}" title="${escapeAttr(title)}">
       <span>${stage.number}</span>
       ${renderStageProfileIcon(stage.type)}
-      <small>${escapeHtml(stage.label)}</small>
+      <small>${escapeHtml(status.cancelled ? "geannuleerd" : stage.label)}</small>
     </article>
   `;
 }
@@ -2916,7 +2921,7 @@ function calculateStandings(currentState) {
     const normalizedWinnerNames = winnerNames.map(normalizeName);
     const winnerTeams = [];
 
-    rosters.forEach((rosterState) => {
+    if (GAME_LOGIC.stagePolicy(stage).scoreRiders) rosters.forEach((rosterState) => {
       applyManualSwapsBeforeStage(rosterState, currentState, stage.name, swapLog, appliedManualSwaps);
       markWithdrawnReserves(rosterState, stageResults, stage.name, riderStats);
       replaceWithdrawnRiders(rosterState, stageResults, stage.name, swapLog, riderStats);
@@ -3327,7 +3332,7 @@ function calculateMoney(standings, currentState) {
   const dailyClassificationWeight = sumClassificationWeights(prizeWeights.daily);
   const dayWeight = dailyClassificationWeight + Number(prizeWeights.daily.stageWinner || 0);
   const stageCount = Number(currentState.settings.stageCount || 1);
-  const loadedStageCount = currentState.stages.filter((stage) => stage.results.trim()).length;
+  const loadedStageCount = currentState.stages.filter(isCompletedStage).length;
   const finalPotUnlocked = loadedStageCount >= stageCount;
   const prizeBreakdown = {
     final: CLASSIFICATIONS.map((classification) => ({
@@ -3345,7 +3350,7 @@ function calculateMoney(standings, currentState) {
   };
   let reservedStageWinnerMoney = 0;
   let reservedDailyMoney = 0;
-  const loadedStageNames = currentState.stages.filter((stage) => stage.results.trim()).map((stage) => stage.name);
+  const loadedStageNames = currentState.stages.filter(isCompletedStage).map((stage) => stage.name);
 
   CLASSIFICATIONS.forEach((classification) => {
     if (classification.id === "general") {
@@ -3556,7 +3561,7 @@ function calculateMoneyTimeline(standings, currentState) {
   let reservedRolloverMoney = 0;
 
   currentState.stages
-    .filter((stage) => stage.results.trim())
+    .filter(isCompletedStage)
     .forEach((stage) => {
       CLASSIFICATIONS.forEach((classification) => {
         const dayPrize = dayWeight ? (dayPot * (Number(prizeWeights.daily[classification.id] || 0) / dayWeight)) / stageCount : 0;
@@ -4593,6 +4598,14 @@ function teamKey(team) {
   return GAME_LOGIC.teamKey(team);
 }
 
+function isCancelledStage(stage) {
+  return stage?.cancelled === true;
+}
+
+function isCompletedStage(stage) {
+  return GAME_LOGIC.stagePolicy(stage).completed;
+}
+
 function getTeamByName(teamName) {
   return state.teams.find((team) => teamKey(team) === teamName)
     || state.teams.find((team) => team.name === teamName)
@@ -4871,7 +4884,7 @@ function renderAdminAccess() {
 
 function renderAdminOverview() {
   if (!els.adminOverviewData) return;
-  const loadedStages = state.stages.filter((stage) => String(stage.results || "").trim()).length;
+  const loadedStages = state.stages.filter(isCompletedStage).length;
   const participantRows = state.teams.map((team) => `
     <tr>
       <td><input data-admin-team-name="${escapeAttr(teamKey(team))}" value="${escapeAttr(team.name || "")}" aria-label="Deelnemersnaam"></td>
@@ -4939,7 +4952,7 @@ async function deleteAdminTeam(teamId) {
 
 function lastLoadedStageName() {
   return state.stages
-    .filter((stage) => String(stage.results || "").trim())
+    .filter(isCompletedStage)
     .sort((a, b) => getStageNumber(a.name) - getStageNumber(b.name))
     .at(-1)?.name || "";
 }
@@ -5214,7 +5227,7 @@ function renderPossibleErrors() {
     category: "Mislukte rekentest",
     message: `${result.name} is mislukt. Controleer de spelberekening voordat je verdergaat.`
   }));
-  if (state.stages.some((stage) => stage.results?.trim()) && state.teams.length) {
+  if (state.stages.some(isCompletedStage) && state.teams.length) {
     const standings = calculateStandings(state);
     standings.progress.filter((entry) => entry.ineligibleReason).forEach((entry) => issues.push({
       id: `score-${normalizeName(entry.teamName)}-${getStageNumber(entry.stage)}-${entry.classificationId}-${entry.ineligibleReason}`,
