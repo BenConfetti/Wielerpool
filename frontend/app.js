@@ -2213,18 +2213,41 @@ function renderLatestStageResults(stage, rows) {
   const indexes = Object.fromEntries(headers.map((header, index) => [normalizeText(header), index]));
   const standings = calculateStandings(state);
   const stageRoster = standings.stageRosters.find((entry) => entry.stage === stage.name);
-  const resultRows = body.map((row) => ({
+  const resultRows = body.map((row, index) => ({
+    position: index + 1,
     name: row[indexes.renner] || "",
     general: numericCsvCell(row[indexes.general]),
     points: numericCsvCell(row[indexes.points]),
     mountain: numericCsvCell(row[indexes.mountain]),
     youth: numericCsvCell(row[indexes.youth])
-  }));
+  })).filter((row) => row.name && Number.isFinite(row.general));
+  const countedByTeam = new Map(standings.progress
+    .filter((entry) => entry.stage === stage.name && entry.classificationId === "general")
+    .map((entry) => [entry.teamName, new Set(entry.rows.map((row) => normalizeName(row.rider)))]));
   return `
     <details open class="latest-stage-details">
       <summary>Meest recente uitslag: ${escapeHtml(stage.name)}</summary>
       <p class="hint matrix-legend"><span class="result-role result-role-counted"></span> Meetellend <span class="result-role result-role-active"></span> Opgesteld, niet meetellend <span class="result-role result-role-reserve"></span> Reserve</p>
-      ${CLASSIFICATIONS.map((classification) => renderLatestClassificationMatrix(stage.name, classification, resultRows, stageRoster, standings)).join("")}
+      <div class="latest-results-scroll latest-stage-table">
+        <table>
+          <thead><tr>
+            <th>Pos.</th>
+            <th>Renner</th>
+            ${state.teams.map((team) => `<th class="latest-team-heading" title="${escapeAttr(displayTeamWithManager(team))}"><span>${escapeHtml(displayTeamName(teamKey(team)))}</span></th>`).join("")}
+            <th>Achterstand</th>
+            <th>Punten</th>
+            <th>Bergpunten</th>
+          </tr></thead>
+          <tbody>${resultRows.map((row) => `<tr>
+            <td>${row.position}</td>
+            <td class="${Number.isFinite(row.youth) ? "latest-youth-rider" : ""}">${escapeHtml(formatRiderName(row.name))}</td>
+            ${state.teams.map((team) => renderLatestResultTeamCell(row.name, team, stageRoster, countedByTeam)).join("")}
+            <td>${formatDuration(row.general)}</td>
+            <td>${Number.isFinite(row.points) ? formatNumber(row.points) : ""}</td>
+            <td>${Number.isFinite(row.mountain) ? formatNumber(row.mountain) : ""}</td>
+          </tr>`).join("")}</tbody>
+        </table>
+      </div>
     </details>`;
 }
 
@@ -2234,39 +2257,16 @@ function numericCsvCell(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function renderLatestClassificationMatrix(stageName, classification, resultRows, stageRoster, standings) {
-  const rows = resultRows
-    .filter((row) => Number.isFinite(row[classification.id]))
-    .sort((a, b) => classification.mode === "low" ? a[classification.id] - b[classification.id] : b[classification.id] - a[classification.id]);
-  const progressByTeam = new Map(standings.progress
-    .filter((entry) => entry.stage === stageName && entry.classificationId === classification.id)
-    .map((entry) => [entry.teamName, new Set(entry.rows.map((row) => normalizeName(row.rider)))]));
-  return `
-    <section class="latest-classification latest-classification-${classification.id}">
-      <h3>${escapeHtml(classification.label)}</h3>
-      <div class="latest-results-scroll">
-        <table>
-          <thead><tr><th>Renner</th>${state.teams.map((team) => `<th class="latest-team-heading" title="${escapeAttr(displayTeamWithManager(team))}"><span>${escapeHtml(displayTeamWithManager(team))}</span></th>`).join("")}<th>Score</th></tr></thead>
-          <tbody>${rows.map((row, index) => `<tr>
-            <td><span class="latest-result-rank">${index + 1}.</span> ${escapeHtml(formatRiderName(row.name))}</td>
-            ${state.teams.map((team) => renderLatestResultTeamCell(row.name, classification, team, stageRoster, progressByTeam)).join("")}
-            <td>${classification.unit === "sec" ? formatDuration(row[classification.id]) : formatNumber(row[classification.id])}</td>
-          </tr>`).join("")}</tbody>
-        </table>
-      </div>
-    </section>`;
-}
-
-function renderLatestResultTeamCell(riderName, classification, team, stageRoster, progressByTeam) {
+function renderLatestResultTeamCell(riderName, team, stageRoster, countedByTeam) {
   const teamName = teamKey(team);
   const roster = stageRoster?.teams.find((entry) => entry.teamName === teamName);
   const riderKey = normalizeName(riderName);
   const isReserve = roster?.reserves.some((name) => normalizeName(name) === riderKey);
   const isActive = roster?.active.some((name) => normalizeName(name) === riderKey);
-  const isCounted = progressByTeam.get(teamName)?.has(riderKey);
+  const isCounted = countedByTeam.get(teamName)?.has(riderKey);
   let role = "empty";
   if (isReserve) role = "reserve";
-  else if (isActive && (classification.id === "points" || classification.id === "mountain" || isCounted)) role = "counted";
+  else if (isActive && isCounted) role = "counted";
   else if (isActive) role = "active";
   return `<td class="latest-result-team-cell result-role-${role}" title="${escapeAttr(displayTeamWithManager(team))}"></td>`;
 }

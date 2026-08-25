@@ -1282,16 +1282,6 @@ textarea {
   width: 22px;
 }
 
-.latest-classification {
-  margin: 6px 0 10px;
-}
-
-.latest-classification h3 {
-  font-size: 13px;
-  margin: 0;
-  padding: 3px 5px;
-}
-
 .latest-results-scroll {
   border: 1px solid var(--line);
   max-height: 520px;
@@ -1306,8 +1296,9 @@ textarea {
 
 .latest-results-scroll th,
 .latest-results-scroll td {
-  height: 24px;
-  padding: 2px 4px;
+  font-size: 12px;
+  height: 22px;
+  padding: 2px 3px;
 }
 
 .latest-results-scroll th {
@@ -1317,25 +1308,53 @@ textarea {
 }
 
 .latest-results-scroll th:first-child,
-.latest-results-scroll td:first-child {
+.latest-results-scroll td:first-child,
+.latest-results-scroll th:nth-child(2),
+.latest-results-scroll td:nth-child(2) {
   background: #fff;
-  left: 0;
-  min-width: 190px;
   position: sticky;
-  width: 190px;
   z-index: 1;
 }
 
 .latest-results-scroll th:first-child {
+  left: 0;
+  min-width: 42px;
+  text-align: right;
+  width: 42px;
+}
+
+.latest-results-scroll td:first-child {
+  left: 0;
+  min-width: 42px;
+  text-align: right;
+  width: 42px;
+}
+
+.latest-results-scroll th:nth-child(2),
+.latest-results-scroll td:nth-child(2) {
+  left: 42px;
+  min-width: 190px;
+  width: 190px;
+}
+
+.latest-results-scroll th:first-child,
+.latest-results-scroll th:nth-child(2) {
   background: #f4f4f4;
   z-index: 4;
 }
 
-.latest-results-scroll th:last-child,
-.latest-results-scroll td:last-child {
+.latest-stage-table th:nth-last-child(-n+3),
+.latest-stage-table td:nth-last-child(-n+3) {
   min-width: 62px;
   text-align: right;
   width: 62px;
+  white-space: nowrap;
+}
+
+.latest-stage-table th:nth-last-child(3),
+.latest-stage-table td:nth-last-child(3) {
+  min-width: 82px;
+  width: 82px;
 }
 
 .latest-team-heading,
@@ -1366,11 +1385,8 @@ textarea {
 .result-role-reserve { background: #fb923c !important; }
 .result-role-empty { background: #fff !important; }
 
-.latest-result-rank {
-  color: var(--muted);
-  display: inline-block;
-  text-align: right;
-  width: 26px;
+.latest-youth-rider {
+  font-weight: 800;
 }
 
 .standing .detail-open {
