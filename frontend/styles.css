@@ -1249,6 +1249,130 @@ textarea {
   min-width: 640px;
 }
 
+#tourResultsData {
+  max-height: none;
+  overflow: visible;
+}
+
+.latest-stage-results {
+  margin-bottom: 8px;
+}
+
+.latest-stage-details > summary {
+  background: #f4f4f4;
+  border: 1px solid var(--strong-line);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 5px 7px;
+}
+
+.matrix-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 5px 0;
+}
+
+.result-role {
+  border: 1px solid var(--line);
+  display: inline-block;
+  height: 13px;
+  width: 22px;
+}
+
+.latest-classification {
+  margin: 6px 0 10px;
+}
+
+.latest-classification h3 {
+  font-size: 13px;
+  margin: 0;
+  padding: 3px 5px;
+}
+
+.latest-results-scroll {
+  border: 1px solid var(--line);
+  max-height: 520px;
+  overflow: auto;
+}
+
+.latest-results-scroll table {
+  min-width: 100%;
+  table-layout: fixed;
+  width: max-content;
+}
+
+.latest-results-scroll th,
+.latest-results-scroll td {
+  height: 24px;
+  padding: 2px 4px;
+}
+
+.latest-results-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.latest-results-scroll th:first-child,
+.latest-results-scroll td:first-child {
+  background: #fff;
+  left: 0;
+  min-width: 190px;
+  position: sticky;
+  width: 190px;
+  z-index: 1;
+}
+
+.latest-results-scroll th:first-child {
+  background: #f4f4f4;
+  z-index: 4;
+}
+
+.latest-results-scroll th:last-child,
+.latest-results-scroll td:last-child {
+  min-width: 62px;
+  text-align: right;
+  width: 62px;
+}
+
+.latest-team-heading,
+.latest-result-team-cell {
+  max-width: 30px;
+  min-width: 30px;
+  width: 30px;
+}
+
+.latest-team-heading {
+  height: 150px !important;
+  padding: 3px 2px !important;
+  vertical-align: bottom;
+}
+
+.latest-team-heading span {
+  display: inline-block;
+  line-height: 1.05;
+  max-height: 142px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: rotate(180deg);
+  writing-mode: vertical-rl;
+}
+
+.result-role-counted { background: #166534 !important; }
+.result-role-active { background: #bbf7d0 !important; }
+.result-role-reserve { background: #fb923c !important; }
+.result-role-empty { background: #fff !important; }
+
+.latest-result-rank {
+  color: var(--muted);
+  display: inline-block;
+  text-align: right;
+  width: 26px;
+}
+
 .standing .detail-open {
   line-height: inherit;
   min-height: 0;

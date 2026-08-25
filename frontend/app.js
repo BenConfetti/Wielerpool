@@ -912,6 +912,7 @@ async function loadOfficialStages(options = {}) {
   tourRiders = await loadTourRiderList();
   recordOverwrittenPriceWarnings();
   withdrawalRecords = await loadWithdrawalRecords();
+  withdrawalRecords = mergeStageWithdrawalRecords(withdrawalRecords, state.stages);
   applyWithdrawalRecordsToTourRiders();
 }
 
@@ -993,6 +994,36 @@ async function loadWithdrawalRecords() {
   } catch {
     return [];
   }
+}
+
+function mergeStageWithdrawalRecords(existingRecords, stages) {
+  const records = [...(existingRecords || [])];
+  (stages || []).forEach((stage) => {
+    const stageNumber = getStageNumber(stage.name);
+    if (!Number.isFinite(stageNumber)) return;
+    parseStageResults(stage.results || "").forEach((scores) => {
+      if (!scores.withdrawn || !scores.name) return;
+      const code = String(scores.withdrawalCode || "DNF").toUpperCase();
+      const effectiveStage = GAME_LOGIC.withdrawalEffectiveStage(code, stageNumber);
+      const existingIndex = records.findIndex((record) => riderNamesMatch(normalizeName(record.name), normalizeName(scores.name)));
+      const rider = tourRiders.find((item) => riderNamesMatch(normalizeName(item.name), normalizeName(scores.name)));
+      const record = {
+        name: scores.name,
+        displayName: fallbackRiderName(scores.name),
+        team: rider?.team || "",
+        code,
+        stage: stageNumber,
+        effectiveStage,
+        source: `Etappedata ${stage.name}`
+      };
+      if (existingIndex < 0) {
+        records.push(record);
+      } else if (effectiveStage < records[existingIndex].effectiveStage) {
+        records[existingIndex] = record;
+      }
+    });
+  });
+  return records;
 }
 
 function applyWithdrawalRecordsToTourRiders() {
@@ -2116,12 +2147,41 @@ async function renderStageDataFiles() {
   if (!els.tourResultsData) return;
   els.tourResultsData.innerHTML = "";
 
+  const availableStages = [];
+  for (const stage of OFFICIAL_STAGE_FILES) {
+    if (stage.cancelled) continue;
+    try {
+      const response = await fetch(stage.url);
+      if (!response.ok) continue;
+      const csv = await response.text();
+      const rows = parseDelimitedRows(csv);
+      if (rows.length > 1) availableStages.push({ stage, rows });
+    } catch {
+      // De gewone etappelijst hieronder toont de laadfout afzonderlijk.
+    }
+  }
+
+  const latest = availableStages.at(-1);
+  if (latest) {
+    const latestSection = document.createElement("section");
+    latestSection.className = "latest-stage-results";
+    latestSection.innerHTML = renderLatestStageResults(latest.stage, latest.rows);
+    els.tourResultsData.appendChild(latestSection);
+  }
+
   for (const stage of OFFICIAL_STAGE_FILES) {
     const section = document.createElement("section");
     section.className = "data-section";
-    section.innerHTML = `<details><summary>${escapeHtml(stage.name)}</summary><div>Laden...</div></details>`;
+    section.innerHTML = `<details><summary>${escapeHtml(stage.name)}${stage.cancelled ? " (geannuleerd)" : ""}</summary><div>${stage.cancelled ? '<p class="hint">Geen rituitslag; geregistreerde uitvallers staan hieronder.</p>' : "Laden..."}</div></details>`;
     els.tourResultsData.appendChild(section);
-    await renderCsvFile(stage.url, section.querySelector("div"), `Geen data voor ${stage.name}.`, { addPosition: true, formatRiderNames: true });
+    const target = section.querySelector("div");
+    if (stage.cancelled) {
+      const tableTarget = document.createElement("div");
+      target.appendChild(tableTarget);
+      await renderCsvFile(stage.url, tableTarget, `Geen geregistreerde uitvallers voor ${stage.name}.`, { addPosition: false, formatRiderNames: true, formatTimeScores: true });
+    } else {
+      await renderCsvFile(stage.url, target, `Geen data voor ${stage.name}.`, { addPosition: true, formatRiderNames: true, formatTimeScores: true });
+    }
   }
 }
 
@@ -2146,6 +2206,69 @@ async function renderCombinedRiderData() {
     ])
   ];
   els.startlistData.innerHTML = renderDataTable(rows);
+}
+
+function renderLatestStageResults(stage, rows) {
+  const [headers, ...body] = rows;
+  const indexes = Object.fromEntries(headers.map((header, index) => [normalizeText(header), index]));
+  const standings = calculateStandings(state);
+  const stageRoster = standings.stageRosters.find((entry) => entry.stage === stage.name);
+  const resultRows = body.map((row) => ({
+    name: row[indexes.renner] || "",
+    general: numericCsvCell(row[indexes.general]),
+    points: numericCsvCell(row[indexes.points]),
+    mountain: numericCsvCell(row[indexes.mountain]),
+    youth: numericCsvCell(row[indexes.youth])
+  }));
+  return `
+    <details open class="latest-stage-details">
+      <summary>Meest recente uitslag: ${escapeHtml(stage.name)}</summary>
+      <p class="hint matrix-legend"><span class="result-role result-role-counted"></span> Meetellend <span class="result-role result-role-active"></span> Opgesteld, niet meetellend <span class="result-role result-role-reserve"></span> Reserve</p>
+      ${CLASSIFICATIONS.map((classification) => renderLatestClassificationMatrix(stage.name, classification, resultRows, stageRoster, standings)).join("")}
+    </details>`;
+}
+
+function numericCsvCell(value) {
+  if (value == null || String(value).trim() === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function renderLatestClassificationMatrix(stageName, classification, resultRows, stageRoster, standings) {
+  const rows = resultRows
+    .filter((row) => Number.isFinite(row[classification.id]))
+    .sort((a, b) => classification.mode === "low" ? a[classification.id] - b[classification.id] : b[classification.id] - a[classification.id]);
+  const progressByTeam = new Map(standings.progress
+    .filter((entry) => entry.stage === stageName && entry.classificationId === classification.id)
+    .map((entry) => [entry.teamName, new Set(entry.rows.map((row) => normalizeName(row.rider)))]));
+  return `
+    <section class="latest-classification latest-classification-${classification.id}">
+      <h3>${escapeHtml(classification.label)}</h3>
+      <div class="latest-results-scroll">
+        <table>
+          <thead><tr><th>Renner</th>${state.teams.map((team) => `<th class="latest-team-heading" title="${escapeAttr(displayTeamWithManager(team))}"><span>${escapeHtml(displayTeamWithManager(team))}</span></th>`).join("")}<th>Score</th></tr></thead>
+          <tbody>${rows.map((row, index) => `<tr>
+            <td><span class="latest-result-rank">${index + 1}.</span> ${escapeHtml(formatRiderName(row.name))}</td>
+            ${state.teams.map((team) => renderLatestResultTeamCell(row.name, classification, team, stageRoster, progressByTeam)).join("")}
+            <td>${classification.unit === "sec" ? formatDuration(row[classification.id]) : formatNumber(row[classification.id])}</td>
+          </tr>`).join("")}</tbody>
+        </table>
+      </div>
+    </section>`;
+}
+
+function renderLatestResultTeamCell(riderName, classification, team, stageRoster, progressByTeam) {
+  const teamName = teamKey(team);
+  const roster = stageRoster?.teams.find((entry) => entry.teamName === teamName);
+  const riderKey = normalizeName(riderName);
+  const isReserve = roster?.reserves.some((name) => normalizeName(name) === riderKey);
+  const isActive = roster?.active.some((name) => normalizeName(name) === riderKey);
+  const isCounted = progressByTeam.get(teamName)?.has(riderKey);
+  let role = "empty";
+  if (isReserve) role = "reserve";
+  else if (isActive && (classification.id === "points" || classification.id === "mountain" || isCounted)) role = "counted";
+  else if (isActive) role = "active";
+  return `<td class="latest-result-team-cell result-role-${role}" title="${escapeAttr(displayTeamWithManager(team))}"></td>`;
 }
 
 function renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode) {
@@ -2326,6 +2449,10 @@ function formatDataHeader(header) {
 function formatDataCell(value, header, options = {}) {
   const normalizedHeader = normalizeText(header);
   if (normalizedHeader === "jongeren") return isTruthyCell(value) ? "Ja" : "";
+  if (options.formatTimeScores && ["general", "algemeen", "youth"].includes(normalizedHeader) && String(value || "").trim() !== "") {
+    const seconds = Number(value);
+    return Number.isFinite(seconds) ? formatDuration(seconds) : value;
+  }
   if (options.formatRiderNames && ["renner", "rider", "name", "naam"].includes(normalizedHeader)) {
     return formatRiderName(value);
   }
@@ -2893,6 +3020,7 @@ function calculateStandings(currentState) {
   const appliedManualSwaps = new Set();
   const stageWinners = [];
   const dayWinDetails = [];
+  const stageRosters = [];
   const snapshots = [];
   const rosters = currentState.teams.map((team, index) => ({
     teamIndex: index,
@@ -2954,6 +3082,19 @@ function calculateStandings(currentState) {
       });
       scheduleImportedWithdrawals(rosterState, stageResults, stage.name);
     });
+    if (isCancelledStage(stage)) {
+      rosters.forEach((rosterState) => scheduleImportedWithdrawals(rosterState, stageResults, stage.name));
+    }
+    if (GAME_LOGIC.stagePolicy(stage).scoreRiders) {
+      stageRosters.push({
+        stage: stage.name,
+        teams: rosters.map((roster) => ({
+          teamName: roster.teamName,
+          active: roster.active.map((rider) => rider.name),
+          reserves: roster.reserves.map((rider) => rider.name)
+        }))
+      });
+    }
 
     const totalTablesAfterStage = mapToSortedTables(totals);
     const leadersByClassification = {};
@@ -3015,6 +3156,7 @@ function calculateStandings(currentState) {
     swapLog,
     stageWinners,
     dayWinDetails,
+    stageRosters,
     riderStats,
     history: snapshots.map((snapshot) => ({
       stage: snapshot.stage,
