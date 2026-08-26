@@ -118,6 +118,11 @@
         "number": 4,
         "name": "Etappe 4",
         "results": "./data/vuelta-2026-stage-4-combined.csv"
+      },
+      {
+        "number": 5,
+        "name": "Etappe 5",
+        "results": "./data/vuelta-2026-stage-5-combined.csv"
       }
     ]
   },

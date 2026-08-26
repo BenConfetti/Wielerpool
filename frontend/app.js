@@ -4549,9 +4549,13 @@ function parseCsvScoreRow(row, headerIndex, hasHeader, rowIndex) {
   }
 
   const withdrawnIndex = mapping.withdrawn;
-  if (withdrawnIndex >= 0 && isTruthyCell(row[withdrawnIndex])) {
-    scores.withdrawn = true;
-    scores.withdrawalCode = "DNF";
+  if (withdrawnIndex >= 0) {
+    const withdrawalValue = String(row[withdrawnIndex] || "").trim();
+    const withdrawalCode = withdrawalValue.toUpperCase();
+    if (["DNF", "DNS", "OTL", "DSQ", "OUT"].includes(withdrawalCode) || isTruthyCell(withdrawalValue)) {
+      scores.withdrawn = true;
+      scores.withdrawalCode = ["DNF", "DNS", "OTL", "DSQ", "OUT"].includes(withdrawalCode) ? withdrawalCode : "DNF";
+    }
   }
 
   return { name, scores };
