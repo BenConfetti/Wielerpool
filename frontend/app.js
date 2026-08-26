@@ -53,6 +53,7 @@ const OFFICIAL_STAGE_FILES = (ROUND_FILES.stages || []).map((stage) => ({
 }));
 const TOUR_STAGES = ROUND_CONFIG.stageSchedule || [];
 const PRICE_VERSION = String(ROUND_CONFIG.priceVersion || "");
+const RELEASE_HISTORY = Array.isArray(ROUND_CONFIG.releaseHistory) ? ROUND_CONFIG.releaseHistory : [];
 
 const exampleState = {
   settings: {
@@ -2393,20 +2394,22 @@ async function renderWithdrawnRiderData() {
 function formatWithdrawnRiderTeamUsage(riderName) {
   const usages = [];
   const riderKey = normalizeName(riderName);
-  state.teams.forEach((team, index) => {
-    addRiderUsage(usages, team, team.riders, riderKey, "starter");
-    addRiderUsage(usages, team, team.reserves, riderKey, "reserve");
-    addRiderUsage(usages, team, team.initialRiders, riderKey, "basis starter");
-    addRiderUsage(usages, team, team.initialReserves, riderKey, "basis reserve");
+  state.teams.forEach((team) => {
+    const currentRole = riderListContains(team.riders, riderKey)
+      ? "starter"
+      : riderListContains(team.reserves, riderKey) ? "reserve" : "";
+    const initialRole = riderListContains(team.initialRiders, riderKey)
+      ? "basis starter"
+      : riderListContains(team.initialReserves, riderKey) ? "basis reserve" : "";
+    const role = currentRole || initialRole;
+    if (role) usages.push(`${displayTeamName(teamKey(team))} (${role})`);
   });
   if (!usages.length) return "-";
   return [...new Set(usages)].join("; ");
 }
 
-function addRiderUsage(usages, team, riderListText, riderKey, role) {
-  if (!riderListText) return;
-  if (!parseRiderList(riderListText).some((rider) => normalizeName(rider.name) === riderKey)) return;
-  usages.push(`${displayTeamName(teamKey(team))} (${role})`);
+function riderListContains(riderListText, riderKey) {
+  return Boolean(riderListText) && parseRiderList(riderListText).some((rider) => normalizeName(rider.name) === riderKey);
 }
 
 async function renderCsvFile(url, target, emptyMessage, options = {}) {
@@ -3174,10 +3177,14 @@ function calculateStandings(currentState) {
 
 function scoreTeamForStage(roster, stageResults, classification, stageName) {
   const riderScores = roster
-    .map((rider) => ({
-      rider: rider.name,
-      score: findRiderResult(stageResults, rider.name)?.[classification.id]
-    }))
+    .map((rider) => {
+      const result = findRiderResult(stageResults, rider.name);
+      return {
+        rider: rider.name,
+        score: result?.[classification.id],
+        position: Number(result?.position) || Number.POSITIVE_INFINITY
+      };
+    })
     .filter((entry) => Number.isFinite(entry.score));
 
   if (riderScores.length === 0) {
@@ -3188,7 +3195,7 @@ function scoreTeamForStage(roster, stageResults, classification, stageName) {
     };
   }
 
-  const sorted = riderScores.sort((a, b) => classification.mode === "low" ? a.score - b.score : b.score - a.score);
+  const sorted = riderScores.sort((a, b) => GAME_LOGIC.compareStageScores(a, b, classification.mode));
   const used = sorted.slice(0, scoringDepth(classification));
   if (GAME_LOGIC.requiresFullScoreCount(classification.id) && used.length < scoringDepth(classification)) {
     return {
@@ -4169,10 +4176,11 @@ function parseStageResults(value) {
   value.split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .forEach((line) => {
+    .forEach((line, index) => {
       const [rawName, ...pairs] = line.split(",").map((part) => part.trim());
       const scores = {};
       scores.name = rawName;
+      scores.position = index + 1;
       pairs.forEach((pair) => {
         const [key, rawValue] = pair.split("=").map((part) => part.trim());
         if (["out", "dnf", "dns", "otl", "dsq"].includes(key) && ["1", "true", "ja", "yes"].includes(String(rawValue).toLowerCase())) {
@@ -5051,7 +5059,7 @@ function renderAdminOverview() {
       <article><strong>Importstatus</strong><span>${formatNumber(loadedStages)} etappes ingeladen, laatste: ${escapeHtml(lastLoadedStageName() || "-")}</span></article>
       <article><strong>Wisselvenster</strong><span>${openWindow ? `${escapeHtml(openWindow.label)} is open` : "Geen venster open"}</span></article>
       <article><strong>Feedback</strong><span>${formatNumber(feedbackItems.length)} inzendingen</span></article>
-      <article><strong>Adminlog</strong><span>${formatNumber(adminLogItems.length)} wijzigingen</span></article>
+      <article><strong>Adminlog</strong><span>${formatNumber(getCombinedAdminLogItems().length)} wijzigingen</span></article>
       <article><strong>Rekenen</strong><span>Gebruik de knoppen bovenaan Admin na uitslag-, team- of regelwijzigingen.</span></article>
     </div>
     <details class="admin-participants admin-collapsible">
@@ -5235,14 +5243,15 @@ function recordAdminLog(category, action, detail) {
 
 function renderAdminLog() {
   if (!els.adminLogData) return;
-  if (!adminLogItems.length) {
+  const visibleItems = getCombinedAdminLogItems();
+  if (!visibleItems.length) {
     els.adminLogData.innerHTML = "<p class=\"hint\">Nog geen adminwijzigingen.</p>";
     return;
   }
   adminLogItems = adminLogItems.filter((item) => !isNoisyAdminLogItem(item));
   const rows = [
     ["DATUM", "CATEGORIE", "ACTIE", "DETAIL"],
-    ...adminLogItems.map((item) => [
+    ...visibleItems.map((item) => [
       formatFeedbackDate(item.createdAt),
       item.category,
       item.action,
@@ -5250,6 +5259,17 @@ function renderAdminLog() {
     ])
   ];
   els.adminLogData.innerHTML = renderDataTable(rows);
+}
+
+function getCombinedAdminLogItems() {
+  const releaseItems = RELEASE_HISTORY.flatMap((release) => (release.changes || []).map((detail) => ({
+    createdAt: release.releasedAt,
+    category: "Deploy",
+    action: `Frontend ${release.version}`,
+    detail
+  })));
+  return [...releaseItems, ...adminLogItems.filter((item) => !isNoisyAdminLogItem(item))]
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }
 
 function adminLogCategoryForControl(control) {
@@ -5276,10 +5296,11 @@ function adminLogLabelForControl(control) {
 }
 
 function exportAdminLogCsv() {
-  if (!adminLogItems.length) return;
+  const visibleItems = getCombinedAdminLogItems();
+  if (!visibleItems.length) return;
   const rows = [
     ["createdAt", "category", "action", "detail"],
-    ...adminLogItems.map((item) => [item.createdAt, item.category, item.action, item.detail])
+    ...visibleItems.map((item) => [item.createdAt, item.category, item.action, item.detail])
   ];
   const csv = rows.map((row) => row.map(csvCell).join(";")).join("\r\n");
   downloadTextFile(`wielerpool-adminlog-${new Date().toISOString().slice(0, 10)}.csv`, `\ufeff${csv}`, "text/csv;charset=utf-8");

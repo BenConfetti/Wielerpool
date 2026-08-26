@@ -6,7 +6,7 @@ const logic = globalThis.POOL_GAME_LOGIC;
 
 test("vaste spelregels slagen", () => {
   const results = logic.selfTest();
-  assert.equal(results.length, 9);
+  assert.equal(results.length, 10);
   assert.deepEqual(results.filter((result) => !result.passed), []);
 });
 
@@ -47,4 +47,13 @@ test("een geannuleerde etappe behoudt klassementsprijzen maar heeft geen ritprij
     awardClassificationLeaders: true,
     awardStageWinner: false
   });
+});
+
+test("gelijke tijden worden op officiële dagpositie gesorteerd", () => {
+  const riders = [
+    { rider: "Lager geklasseerd", score: 0, position: 25 },
+    { rider: "Wout van Aert", score: 0, position: 10 },
+    { rider: "Sneller", score: -1, position: 50 }
+  ].sort((a, b) => logic.compareStageScores(a, b, "low"));
+  assert.deepEqual(riders.map((rider) => rider.rider), ["Sneller", "Wout van Aert", "Lager geklasseerd"]);
 });

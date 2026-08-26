@@ -8,6 +8,10 @@
     requiresFullScoreCount(classificationId) {
       return classificationId === "general" || classificationId === "youth";
     },
+    compareStageScores(a, b, mode) {
+      const scoreDifference = mode === "low" ? a.score - b.score : b.score - a.score;
+      return scoreDifference || Number(a.position) - Number(b.position);
+    },
     withdrawalEffectiveStage(code, stageNumber) {
       return String(code || "DNF").toUpperCase() === "DNS" ? Number(stageNumber) : Number(stageNumber) + 1;
     },
@@ -54,6 +58,7 @@
       check("Tijdnotatie wordt naar seconden omgerekend", api.parseTimeValue("1:02:03") === 3723);
       check("Deelnemer-teams hebben een unieke sleutel", api.teamKey({ id: "abc", name: "Sam" }) !== api.teamKey({ id: "def", name: "Sam" }));
       check("Alleen ingestelde rustdagen leveren handmatige wissels", api.isConfiguredRestDaySwap(9, [{ afterStage: 9 }, { afterStage: 15 }]) && !api.isConfiguredRestDaySwap(1, [{ afterStage: 9 }, { afterStage: 15 }]));
+      check("Gelijke scores volgen de officiële dagpositie", api.compareStageScores({ score: 0, position: 10 }, { score: 0, position: 25 }, "low") < 0);
       return results;
     }
   });

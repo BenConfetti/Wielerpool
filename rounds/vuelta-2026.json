@@ -129,6 +129,36 @@
   "corrections": [],
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
+  "releaseHistory": [
+    {
+      "version": "20260826-2",
+      "releasedAt": "2026-08-26T19:36:15+02:00",
+      "changes": [
+        "Bij gelijke tijden bepaalt de officiële dagpositie welke vijf renners meetellen.",
+        "Dubbele vermeldingen van huidige reserve en basisreserve samengevoegd.",
+        "Deployhistorie toegevoegd aan het Adminlog."
+      ]
+    },
+    {
+      "version": "20260826-1",
+      "releasedAt": "2026-08-26T19:20:04+02:00",
+      "changes": [
+        "Etappe 5 verwerkt: 180 finishers, punten, bergpunten en jongeren.",
+        "DNF voor Roel van Sintmaartensdijk en DNS voor Cian Uijtdebroeks verwerkt.",
+        "Relegatie van Orluis Aular naar positie 89 verwerkt."
+      ]
+    },
+    {
+      "version": "20260825-2",
+      "releasedAt": "2026-08-25T20:42:58+02:00",
+      "changes": ["Meest recente etappeuitslag samengevoegd tot één compacte teamtabel."]
+    },
+    {
+      "version": "20260825-1",
+      "releasedAt": "2026-08-25T18:54:51+02:00",
+      "changes": ["Etappe 4 verwerkt.", "Uitvallersoverzicht gekoppeld aan de ingelezen etappedata."]
+    }
+  ],
   "stageSchedule": [
     { "number": 1, "date": "22/08", "day": "Saturday", "type": "time-trial", "label": "ITT", "route": "Monaco - Monaco", "km": 9.4 },
     { "number": 2, "date": "23/08", "day": "Sunday", "type": "hilly", "label": "heuvel", "route": "Monaco - Manosque", "km": 214.3 },
