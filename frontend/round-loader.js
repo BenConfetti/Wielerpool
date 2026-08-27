@@ -1,4 +1,4 @@
-const APP_ASSET_VERSION = "20260826-2";
+const APP_ASSET_VERSION = "20260827-1";
 
 (async function loadRound() {
   const params = new URLSearchParams(window.location.search);
