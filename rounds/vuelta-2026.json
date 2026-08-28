@@ -128,6 +128,11 @@
         "number": 6,
         "name": "Etappe 6",
         "results": "./data/vuelta-2026-stage-6-combined.csv"
+      },
+      {
+        "number": 7,
+        "name": "Etappe 7",
+        "results": "./data/vuelta-2026-stage-7-combined.csv"
       }
     ]
   },
@@ -135,6 +140,15 @@
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
+    {
+      "version": "20260828-1",
+      "releasedAt": "2026-08-28T21:11:00+02:00",
+      "changes": [
+        "Etappe 7 verwerkt: 178 finishers, punten, bergpunten en jongeren.",
+        "Geen nieuwe uitvallers in etappe 7.",
+        "Andreas Leknessund als etappewinnaar verwerkt."
+      ]
+    },
     {
       "version": "20260827-1",
       "releasedAt": "2026-08-27T22:30:00+02:00",
