@@ -141,6 +141,14 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260828-2",
+      "releasedAt": "2026-08-28T21:56:00+02:00",
+      "changes": [
+        "Teamselectie toont de actuele selectie na automatische en handmatige wissels.",
+        "Per team worden handmatige en automatische wissels met het wisselmoment getoond."
+      ]
+    },
+    {
       "version": "20260828-1",
       "releasedAt": "2026-08-28T21:11:00+02:00",
       "changes": [

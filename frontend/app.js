@@ -2571,30 +2571,70 @@ function renderParticipantTeamsData() {
     els.participantTeamsData.innerHTML = "Nog geen teams.";
     return;
   }
+  const standings = calculateStandings(state);
+  const currentStageRoster = standings.stageRosters.at(-1);
+  const currentStageName = currentStageRoster?.stage || "voor de start";
   els.participantTeamsData.innerHTML = state.teams.map((team) => {
-    const active = parseRiderList(team.riders);
-    const reserves = parseRiderList(team.reserves);
-    const totalCost = [...active, ...reserves].reduce((sum, rider) => sum + Number(rider.price || 0), 0);
+    const storedActive = parseRiderList(team.riders);
+    const storedReserves = parseRiderList(team.reserves);
+    const calculatedRoster = currentStageRoster?.teams.find((entry) => entry.teamName === teamKey(team));
+    const active = calculatedRoster
+      ? calculatedRoster.active.map((name) => ({ name }))
+      : storedActive;
+    const reserves = calculatedRoster
+      ? calculatedRoster.reserves.map((name) => ({ name }))
+      : storedReserves;
+    const teamSwaps = (standings.swapLog || []).filter((row) => row.teamName === teamKey(team));
+    const totalCost = [...storedActive, ...storedReserves].reduce((sum, rider) => sum + Number(rider.price || 0), 0);
     return `
       <details class="participant-team">
         <summary>${renderTeamKit(teamKey(team))} <span class="participant-team-name">${escapeHtml(displayTeamWithManager(team))}</span><span class="participant-team-total">Totale ploeg: ${formatNumber(totalCost)} BC</span></summary>
+        <p class="hint">Huidige selectie na verwerking van ${escapeHtml(currentStageName)}.</p>
         <div class="participant-grid">
           <div>
-            <h4>Starters</h4>
+            <h4>Huidige starters</h4>
             <ol>${active.map((rider) => `<li class="${isYouthRider(rider.name) ? "rider-choice-youth" : ""}">${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
           </div>
           <div>
-            <h4>Reserves op prioriteit</h4>
+            <h4>Huidige reserves op prioriteit</h4>
             <ol>${reserves.map((rider) => `<li class="${isYouthRider(rider.name) ? "rider-choice-youth" : ""}">${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
           </div>
-          <div>
+          <div class="participant-swap-log">
             <h4>Wissellog</h4>
-            <p class="hint">Nog geen handmatige rustdagwissels geregistreerd.</p>
+            ${teamSwaps.length ? renderParticipantSwapLog(teamSwaps) : `<p class="hint">Nog geen handmatige of automatische wissels.</p>`}
           </div>
         </div>
       </details>
     `;
   }).join("");
+}
+
+function renderParticipantSwapLog(rows) {
+  return `
+    <table>
+      <thead><tr><th>Type</th><th>Na etappe</th><th>Eruit</th><th>Erin</th></tr></thead>
+      <tbody>
+        ${rows.map((row) => `
+          <tr class="swap-row swap-${row.type}">
+            <td>${row.type === "manual" ? "Handmatig" : "Automatisch"}</td>
+            <td>${escapeHtml(formatSwapAfterStage(row))}</td>
+            <td>${escapeHtml(formatRiderName(row.out || ""))}</td>
+            <td>${escapeHtml(formatRiderName(row.in || ""))}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function formatSwapAfterStage(row) {
+  const stageNumber = getStageNumber(row.stage);
+  if (!Number.isFinite(stageNumber)) return String(row.stage || "-");
+  if (row.type === "manual") {
+    const isAfterStage = /\bna\b/i.test(String(row.stage || ""));
+    return String(isAfterStage ? stageNumber : Math.max(0, stageNumber - 1));
+  }
+  return String(Math.max(0, stageNumber - 1));
 }
 
 function renderProgressData() {

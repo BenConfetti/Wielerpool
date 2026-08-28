@@ -2174,6 +2174,22 @@ tbody tr:hover {
   margin: 0 0 3px;
 }
 
+.participant-swap-log {
+  min-width: min(100%, 360px);
+}
+
+.participant-swap-log table {
+  font-size: 11px;
+  width: 100%;
+}
+
+.participant-swap-log th,
+.participant-swap-log td {
+  padding: 2px 4px;
+  text-align: left;
+  white-space: nowrap;
+}
+
 .progress-data {
   display: grid;
   gap: 4px;
