@@ -133,6 +133,11 @@
         "number": 7,
         "name": "Etappe 7",
         "results": "./data/vuelta-2026-stage-7-combined.csv"
+      },
+      {
+        "number": 8,
+        "name": "Etappe 8",
+        "results": "./data/vuelta-2026-stage-8-combined.csv"
       }
     ]
   },
@@ -140,6 +145,15 @@
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
+    {
+      "version": "20260829-1",
+      "releasedAt": "2026-08-29T19:38:00+02:00",
+      "changes": [
+        "Etappe 8 verwerkt: 173 finishers, punten, bergpunten en jongeren.",
+        "DNS voor Luca van Boven en DNF voor Tadej Pogačar, Mattia Gaffuri, Floris van Tricht en Diego Uriarte verwerkt.",
+        "Bryan Coquard als etappewinnaar verwerkt."
+      ]
+    },
     {
       "version": "20260828-2",
       "releasedAt": "2026-08-28T21:56:00+02:00",
