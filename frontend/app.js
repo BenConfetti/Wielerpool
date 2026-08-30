@@ -2688,13 +2688,14 @@ function renderRiderPerformanceData() {
     return `
       <details class="rider-performance-team">
         <summary>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamName(teamKey(team)))}</summary>
+        <p class="hint">De prestaties tonen de werkelijke uitslagen van starters én reserves. Alleen het aantal onder ‘Top 5 meegeteld’ en de teamstand worden door de opstelling bepaald.</p>
         <table>
           <thead>
             <tr>
               <th>Renner</th>
               <th>Status</th>
-              <th>Start</th>
-              <th>Top 5</th>
+              <th>Etappes actief</th>
+              <th>Top 5 meegeteld</th>
               <th>Alg. totaal</th>
               <th>Alg. gem.</th>
               <th>Punten</th>
@@ -3097,6 +3098,9 @@ function calculateStandings(currentState) {
       markWithdrawnReserves(rosterState, stageResults, stage.name, riderStats);
       replaceWithdrawnRiders(rosterState, stageResults, stage.name, swapLog, riderStats);
       rosterState.active.forEach((rider) => recordRiderActive(riderStats, rosterState.teamName, rider.name));
+      [...rosterState.active, ...rosterState.reserves].forEach((rider) => {
+        recordRiderPerformanceResult(riderStats, rosterState.teamName, rider.name, stageResults);
+      });
       if (rosterState.active.some((rider) => normalizedWinnerNames.includes(normalizeName(rider.name)))) {
         winnerTeams.push(rosterState.teamName);
       }
@@ -3279,18 +3283,22 @@ function initializeRiderStat(riderStats, teamName, riderName, role) {
 function recordRiderScore(riderStats, teamName, row, classification) {
   const stat = ensureRiderStat(riderStats, teamName, row.rider);
   if (classification.id === "general") {
-    stat.generalTotal += row.score;
-    stat.generalCount += 1;
     stat.generalTopFiveCount += 1;
   }
-  if (classification.id === "points") {
-    stat.pointsTotal += row.score;
+}
+
+function recordRiderPerformanceResult(riderStats, teamName, riderName, stageResults) {
+  const result = findRiderResult(stageResults, riderName);
+  if (!result) return;
+  const stat = ensureRiderStat(riderStats, teamName, riderName);
+  if (Number.isFinite(result.general)) {
+    stat.generalTotal += result.general;
+    stat.generalCount += 1;
   }
-  if (classification.id === "mountain") {
-    stat.mountainTotal += row.score;
-  }
-  if (classification.id === "youth") {
-    stat.youthTotal += row.score;
+  if (Number.isFinite(result.points)) stat.pointsTotal += result.points;
+  if (Number.isFinite(result.mountain)) stat.mountainTotal += result.mountain;
+  if (Number.isFinite(result.youth)) {
+    stat.youthTotal += result.youth;
     stat.youthCount += 1;
   }
 }

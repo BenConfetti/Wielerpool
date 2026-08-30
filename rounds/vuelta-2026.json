@@ -138,6 +138,11 @@
         "number": 8,
         "name": "Etappe 8",
         "results": "./data/vuelta-2026-stage-8-combined.csv"
+      },
+      {
+        "number": 9,
+        "name": "Etappe 9",
+        "results": "./data/vuelta-2026-stage-9-combined.csv"
       }
     ]
   },
@@ -145,6 +150,23 @@
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
+    {
+      "version": "20260830-2",
+      "releasedAt": "2026-08-30T20:23:00+02:00",
+      "changes": [
+        "Etappe 9 verwerkt: 170 finishers, punten, bergpunten en jongeren.",
+        "DNF voor Kaden Groves, Pablo Torres en Victor Langellotti verwerkt; zij zijn vanaf etappe 10 niet inzetbaar.",
+        "Enric Mas als etappewinnaar verwerkt."
+      ]
+    },
+    {
+      "version": "20260830-1",
+      "releasedAt": "2026-08-30T10:09:00+02:00",
+      "changes": [
+        "Per-rennerdetails tonen nu ook de werkelijke prestaties van reserves.",
+        "De weergave maakt expliciet onderscheid tussen prestaties en meetellen voor de teamstand."
+      ]
+    },
     {
       "version": "20260829-1",
       "releasedAt": "2026-08-29T19:38:00+02:00",
