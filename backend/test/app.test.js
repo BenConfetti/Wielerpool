@@ -24,6 +24,19 @@ test("teams can be listed, found and saved",async()=>{
  assert.equal((await fetch(base+"/team-1",{method:"DELETE",headers:{"x-admin-password":"koers"}})).status,200);
  await new Promise(r=>server.close(r));
 });
+test("game changes use the exchange windows from online Admin settings",async()=>{
+ const now=Date.now();
+ const repo={
+  getRound:async()=>({id:"vuelta-2026",config:{selectionDeadline:"2026-08-22T16:00:00+02:00",exchangeWindows:[]}}),
+  getRuntimeState:async()=>({state:{settings:{exchangeWindows:[{afterStage:9,from:new Date(now-60000).toISOString(),until:new Date(now+60000).toISOString()}]}}}),
+  saveTeam:async(_round,team)=>({id:"team-1",...team})
+ };
+ const server=createApp(repo).listen(0);
+ const url=`http://127.0.0.1:${server.address().port}/api/v1/rounds/vuelta-2026/teams`;
+ const response=await fetch(url,{method:"POST",headers:{"content-type":"application/json","x-selection-mode":"game-change"},body:JSON.stringify({name:"Keje",teamName:"Lamprekap"})});
+ assert.equal(response.status,201);
+ await new Promise(r=>server.close(r));
+});
 test("runtime and browser state can be saved",async()=>{
  let runtime=null; let clientState=null;
  const repo={health:async()=>{},getRound:async()=>({id:"vuelta-2026"}),listParticipants:async()=>[],listRiders:async()=>[],listTeams:async()=>[],getRuntimeState:async()=>runtime,saveRuntimeState:async(_round,payload)=>(runtime=payload),appendFeedback:async()=>({revision:2}),clearFeedback:async()=>({revision:3}),appendAdminLog:async()=>({revision:4}),clearAdminLog:async()=>({revision:5}),getClientState:async()=>clientState,saveClientState:async(_round,_client,payload)=>(clientState=payload)};

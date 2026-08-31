@@ -1143,9 +1143,17 @@ function renderTeams() {
     .filter(({ team }) => participantMatches(team));
   if (!accessibleEntries.length) return;
   const accessMode = participantSelectionAccessMode();
+  const currentStageRoster = accessMode === "exchange" ? calculateStandings(state).currentRosters : null;
   accessibleEntries.forEach(({ team, index }) => {
-    const active = padRiderSlots(parseRiderList(team.riders), STARTER_COUNT);
-    const reserve = padRiderSlots(parseRiderList(team.reserves), RESERVE_COUNT);
+    const calculatedRoster = currentStageRoster?.teams.find((entry) => entry.teamName === teamKey(team));
+    const active = padRiderSlots(
+      calculatedRoster ? riderNamesToCurrentSelection(calculatedRoster.active) : parseRiderList(team.riders),
+      STARTER_COUNT
+    );
+    const reserve = padRiderSlots(
+      calculatedRoster ? riderNamesToCurrentSelection(calculatedRoster.reserves) : parseRiderList(team.reserves),
+      RESERVE_COUNT
+    );
     const initialBudget = calculateTeamBudgetFromLists(active, reserve);
 
     const wrapper = document.createElement("article");
@@ -1171,6 +1179,13 @@ function renderTeams() {
     updateTeamRiderAvailability(index, { preserveRoster: accessMode !== "initial" });
   });
   renderTeamSelectionMatrix();
+}
+
+function riderNamesToCurrentSelection(names) {
+  return (names || []).map((name) => ({
+    name,
+    price: getCurrentRiderPrice(name, findRiderPrice(name))
+  }));
 }
 
 function renderTeamSelectionMatrix() {
@@ -1643,20 +1658,29 @@ function normalizeHexColor(color) {
 }
 
 function collectPendingTeamChanges() {
+  const exchangeMode = participantSelectionAccessMode() === "exchange";
+  const currentStageRoster = exchangeMode ? calculateStandings(state).currentRosters : null;
   return state.teams.map((team, index) => {
     if (!document.querySelector(`[data-team-name="${index}"]`)) return null;
     const active = readSelectedRidersFromDom(index, "rider");
     const reserves = readSelectedRidersFromDom(index, "reserve");
     const nextRiders = serializeRiderArray(active);
     const nextReserves = serializeRiderArray(reserves);
-    const changed = nextRiders !== (team.riders || "") || nextReserves !== (team.reserves || "");
+    const calculatedRoster = currentStageRoster?.teams.find((entry) => entry.teamName === teamKey(team));
+    const previousRiders = calculatedRoster
+      ? serializeRiderArray(riderNamesToCurrentSelection(calculatedRoster.active))
+      : (team.riders || "");
+    const previousReserves = calculatedRoster
+      ? serializeRiderArray(riderNamesToCurrentSelection(calculatedRoster.reserves))
+      : (team.reserves || "");
+    const changed = nextRiders !== previousRiders || nextReserves !== previousReserves;
     const newName = document.querySelector(`[data-team-name="${index}"]`)?.value || team.name;
     return {
       teamIndex: index,
       teamName: newName,
       previousName: team.name,
-      previousRiders: team.riders || "",
-      previousReserves: team.reserves || "",
+      previousRiders,
+      previousReserves,
       previousInitialRiders: team.initialRiders || team.riders || "",
       previousInitialReserves: team.initialReserves || team.reserves || "",
       nextRiders,
@@ -2572,7 +2596,7 @@ function renderParticipantTeamsData() {
     return;
   }
   const standings = calculateStandings(state);
-  const currentStageRoster = standings.stageRosters.at(-1);
+  const currentStageRoster = standings.currentRosters;
   const currentStageName = currentStageRoster?.stage || "voor de start";
   els.participantTeamsData.innerHTML = state.teams.map((team) => {
     const storedActive = parseRiderList(team.riders);
@@ -3172,6 +3196,25 @@ function calculateStandings(currentState) {
       teams: [...new Set(winnerTeams)]
     });
   });
+  const lastCompletedStageNumber = currentState.stages
+    .filter(isCompletedStage)
+    .reduce((highest, stage) => Math.max(highest, getStageNumber(stage.name) || 0), 0);
+  const currentRosterStage = lastCompletedStageNumber > 0 ? `Etappe ${lastCompletedStageNumber + 1}` : "";
+  if (currentRosterStage) {
+    const emptyStageResults = new Map();
+    rosters.forEach((rosterState) => {
+      applyManualSwapsBeforeStage(rosterState, currentState, currentRosterStage, swapLog, appliedManualSwaps);
+      replaceWithdrawnRiders(rosterState, emptyStageResults, currentRosterStage, swapLog, riderStats);
+    });
+  }
+  const currentRosters = {
+    stage: currentRosterStage ? `Voor ${currentRosterStage.toLowerCase()}` : "voor de start",
+    teams: rosters.map((roster) => ({
+      teamName: roster.teamName,
+      active: roster.active.map((rider) => rider.name),
+      reserves: roster.reserves.map((rider) => rider.name)
+    }))
+  };
   appendPendingManualSwapRows(currentState, swapLog, appliedManualSwaps);
 
   const total = mapToSortedTables(totals);
@@ -3204,6 +3247,7 @@ function calculateStandings(currentState) {
     stageWinners,
     dayWinDetails,
     stageRosters,
+    currentRosters,
     riderStats,
     history: snapshots.map((snapshot) => ({
       stage: snapshot.stage,

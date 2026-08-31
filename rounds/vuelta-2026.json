@@ -151,6 +151,15 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260831-1",
+      "releasedAt": "2026-08-31T14:28:00+02:00",
+      "changes": [
+        "Mijn team toont tijdens een wisselvenster de actuele ploeg na automatische wissels.",
+        "Rustdagwijzigingen worden vergeleken met de actuele ploeg en correct in de wisselhistorie opgenomen.",
+        "De API gebruikt de online Admin-wisselvensters voor het toestaan van wijzigingen."
+      ]
+    },
+    {
       "version": "20260830-2",
       "releasedAt": "2026-08-30T20:23:00+02:00",
       "changes": [

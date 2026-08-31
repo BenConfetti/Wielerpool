@@ -9,8 +9,11 @@ export function createApp(repository, options = {}) {
     const round=await repository.getRound(q.params.roundId);const runtime=await repository.getRuntimeState(q.params.roundId);const deadlineValue=runtime?.state?.settings?.selectionDeadline||round?.config?.selectionDeadline;const deadline=deadlineValue?new Date(deadlineValue):null;
     if(!deadline||Number.isNaN(deadline.getTime())||new Date()<=deadline)return true;
     if(q.get("x-selection-mode")!=="game-change")return false;
-    return (round?.config?.exchangeWindows||[]).some(w=>{const from=new Date(w.from);const until=new Date(w.until);const now=new Date();return !Number.isNaN(from.getTime())&&!Number.isNaN(until.getTime())&&now>=from&&now<=until});
+    const runtimeWindows=runtime?.state?.settings?.exchangeWindows;
+    const exchangeWindows=Array.isArray(runtimeWindows)&&runtimeWindows.length?runtimeWindows:(round?.config?.exchangeWindows||[]);
+    return exchangeWindows.some(w=>{const from=parsePoolDate(w.from);const until=parsePoolDate(w.until);const now=new Date();return !Number.isNaN(from.getTime())&&!Number.isNaN(until.getTime())&&now>=from&&now<=until});
   };
+  const parsePoolDate=(value)=>{const raw=String(value||"").trim();return new Date(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(raw)?`${raw}+02:00`:raw)};
   app.use(cors({ origin: true, credentials: true })); app.use(express.json({ limit: "2mb" }));
   app.get("/api/health", async (_q,r,n)=>{try{await repository.health();r.json({status:"ok",database:"connected",release:"team-admin-v2"})}catch(e){n(e)}});
   app.get("/api/v1/rounds/:roundId", async(q,r,n)=>{try{const x=await repository.getRound(q.params.roundId);x?r.json(x):r.status(404).json({code:"ROUND_NOT_FOUND",message:"Ronde niet gevonden."})}catch(e){n(e)}});
