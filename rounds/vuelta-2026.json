@@ -151,6 +151,15 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260901-1",
+      "releasedAt": "2026-09-01T08:46:00+02:00",
+      "changes": [
+        "De wissellog gebruikt de centraal opgeslagen wissels van alle teams en toont handmatige en automatische wissels per etappe.",
+        "Het openen of verversen van scoreweergaven kan de rekenstatus niet meer wijzigen; mislukte teamopslag wordt volledig teruggedraaid.",
+        "De Prijzenpot toont hoeveel etappewinnaarsgeld is opgespaard doordat niemand de winnaar had opgesteld, inclusief de betreffende etappes."
+      ]
+    },
+    {
       "version": "20260831-1",
       "releasedAt": "2026-08-31T14:28:00+02:00",
       "changes": [
