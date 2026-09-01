@@ -143,6 +143,11 @@
         "number": 9,
         "name": "Etappe 9",
         "results": "./data/vuelta-2026-stage-9-combined.csv"
+      },
+      {
+        "number": 10,
+        "name": "Etappe 10",
+        "results": "./data/vuelta-2026-stage-10-combined.csv"
       }
     ]
   },
@@ -156,7 +161,10 @@
       "changes": [
         "De wissellog gebruikt de centraal opgeslagen wissels van alle teams en toont handmatige en automatische wissels per etappe.",
         "Het openen of verversen van scoreweergaven kan de rekenstatus niet meer wijzigen; mislukte teamopslag wordt volledig teruggedraaid.",
-        "De Prijzenpot toont hoeveel etappewinnaarsgeld is opgespaard doordat niemand de winnaar had opgesteld, inclusief de betreffende etappes."
+        "De Prijzenpot toont hoeveel etappewinnaarsgeld is opgespaard doordat niemand de winnaar had opgesteld, inclusief de betreffende etappes.",
+        "Etappe 10 verwerkt: 167 finishers, punten, bergpunten en jongeren.",
+        "DNS voor Henri-François Renard-Haquin en George Bennett en DNF voor Ben Turner verwerkt.",
+        "Bastien Tronchon als etappewinnaar verwerkt."
       ]
     },
     {
