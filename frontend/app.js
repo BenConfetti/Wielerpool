@@ -542,9 +542,28 @@ function applyRoundConfig() {
   const eyebrow = document.getElementById("roundEyebrow");
   const title = document.getElementById("roundTitle");
   const dataLabel = document.getElementById("roundDataLabel");
+  const lastRefreshed = document.getElementById("lastRefreshed");
   if (eyebrow) eyebrow.textContent = `${roundLabel} ${ROUND_CONFIG.status === "setup" ? "opbouwversie" : "testversie"}`;
   if (title) title.textContent = `${ROUND_CONFIG.name || "Wielerpool"}-pool`;
   if (dataLabel) dataLabel.textContent = ROUND_CONFIG.dataLabel || "Rondedata";
+  if (lastRefreshed) lastRefreshed.textContent = `Laatst ververst: ${formatLatestReleaseDate()}`;
+}
+
+function formatLatestReleaseDate() {
+  const dates = RELEASE_HISTORY
+    .map((release) => new Date(release.releasedAt || ""))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => b - a);
+  if (!dates.length) return "-";
+  return new Intl.DateTimeFormat("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Europe/Amsterdam"
+  }).format(dates[0]).replace(",", "");
 }
 
 function renderRoundIntro() {
