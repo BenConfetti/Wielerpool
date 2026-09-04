@@ -158,6 +158,11 @@
         "number": 12,
         "name": "Etappe 12",
         "results": "./data/vuelta-2026-stage-12-combined.csv"
+      },
+      {
+        "number": 13,
+        "name": "Etappe 13",
+        "results": "./data/vuelta-2026-stage-13-combined.csv"
       }
     ]
   },
@@ -165,6 +170,16 @@
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
+    {
+      "version": "20260904-1",
+      "releasedAt": "2026-09-04T19:05:56+02:00",
+      "changes": [
+        "Etappe 13 verwerkt: 155 finishers, punten, bergpunten en jongeren.",
+        "Alexey Lutsenko als DNS verwerkt; hij is vanaf etappe 13 niet inzetbaar.",
+        "DNF voor Gregor Mühlberger, Francesco Busatto, Sente Sentjens en Pavel Sivakov verwerkt; zij zijn vanaf etappe 14 niet inzetbaar.",
+        "Wout van Aert als etappewinnaar verwerkt."
+      ]
+    },
     {
       "version": "20260903-1",
       "releasedAt": "2026-09-03T19:00:53+02:00",
