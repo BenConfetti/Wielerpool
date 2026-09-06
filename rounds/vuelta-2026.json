@@ -168,6 +168,11 @@
         "number": 14,
         "name": "Etappe 14",
         "results": "./data/vuelta-2026-stage-14-combined.csv"
+      },
+      {
+        "number": 15,
+        "name": "Etappe 15",
+        "results": "./data/vuelta-2026-stage-15-combined.csv"
       }
     ]
   },
@@ -175,6 +180,15 @@
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
+    {
+      "version": "20260906-1",
+      "releasedAt": "2026-09-06T19:50:30+02:00",
+      "changes": [
+        "Etappe 15 verwerkt: 150 finishers, punten, bergpunten en jongeren.",
+        "Geen nieuwe uitvallers in etappe 15.",
+        "Wout van Aert als etappewinnaar verwerkt."
+      ]
+    },
     {
       "version": "20260905-1",
       "releasedAt": "2026-09-05T20:05:38+02:00",
