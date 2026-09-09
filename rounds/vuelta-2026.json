@@ -178,6 +178,11 @@
         "number": 16,
         "name": "Etappe 16",
         "results": "./data/vuelta-2026-stage-16-combined.csv"
+      },
+      {
+        "number": 17,
+        "name": "Etappe 17",
+        "results": "./data/vuelta-2026-stage-17-combined.csv"
       }
     ]
   },
@@ -185,6 +190,15 @@
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
+    {
+      "version": "20260909-1",
+      "releasedAt": "2026-09-09T19:02:38+02:00",
+      "changes": [
+        "Etappe 17 verwerkt: 149 finishers, punten en jongeren; er waren geen bergpunten.",
+        "Geen nieuwe uitvallers in etappe 17.",
+        "Matthew Brennan als etappewinnaar verwerkt."
+      ]
+    },
     {
       "version": "20260908-1",
       "releasedAt": "2026-09-08T18:46:55+02:00",
