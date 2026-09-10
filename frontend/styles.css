@@ -1376,16 +1376,16 @@ textarea {
 
 .latest-stage-table th:nth-last-child(-n+3),
 .latest-stage-table td:nth-last-child(-n+3) {
-  min-width: 62px;
+  min-width: 46px;
   text-align: right;
-  width: 62px;
+  width: 46px;
   white-space: nowrap;
 }
 
 .latest-stage-table th:nth-last-child(3),
 .latest-stage-table td:nth-last-child(3) {
-  min-width: 82px;
-  width: 82px;
+  min-width: 58px;
+  width: 58px;
 }
 
 .latest-team-heading,

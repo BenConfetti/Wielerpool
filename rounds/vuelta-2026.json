@@ -191,6 +191,13 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260910-5",
+      "releasedAt": "2026-09-10T14:04:45+02:00",
+      "changes": [
+        "De kolommen Achterstand, Punten en Bergpunten in Etappe van vandaag zijn compacter gemaakt."
+      ]
+    },
+    {
       "version": "20260910-4",
       "releasedAt": "2026-09-10T13:35:07+02:00",
       "changes": [
