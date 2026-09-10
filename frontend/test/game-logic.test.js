@@ -25,6 +25,7 @@ test("ongeldige tijden worden nooit nul", () => {
   assert.equal(logic.parseTimeValue("DNF"), null);
   assert.equal(logic.parseTimeValue("geen tijd"), null);
   assert.equal(logic.parseTimeValue("+01:25"), 85);
+  assert.equal(logic.parseTimeValue("2,27"), 2.27);
 });
 
 test("prijzen en uitvalmomenten zijn deterministisch", () => {

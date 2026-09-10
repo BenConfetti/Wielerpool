@@ -183,6 +183,11 @@
         "number": 17,
         "name": "Etappe 17",
         "results": "./data/vuelta-2026-stage-17-combined.csv"
+      },
+      {
+        "number": 18,
+        "name": "Etappe 18",
+        "results": "./data/vuelta-2026-stage-18-combined.csv"
       }
     ]
   },
@@ -190,6 +195,16 @@
   "dataVersion": "1",
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
+    {
+      "version": "20260910-7",
+      "releasedAt": "2026-09-10T22:42:54+02:00",
+      "changes": [
+        "Etappe 18 verwerkt: 148 finishers, punten en jongeren; er waren geen bergpunten.",
+        "DNS voor Alexis Renard verwerkt; hij is vanaf etappe 18 niet inzetbaar.",
+        "Stefan Küng als etappewinnaar verwerkt.",
+        "Honderdsten uit de tijdrit worden nauwkeurig in de scoreberekening ingelezen."
+      ]
+    },
     {
       "version": "20260910-6",
       "releasedAt": "2026-09-10T14:11:56+02:00",

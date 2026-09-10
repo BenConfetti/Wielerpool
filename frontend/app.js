@@ -2320,7 +2320,7 @@ function renderLatestStageResults(stage, rows) {
 
 function numericCsvCell(value) {
   if (value == null || String(value).trim() === "") return null;
-  const number = Number(value);
+  const number = GAME_LOGIC.parseTimeValue(value);
   return Number.isFinite(number) ? number : null;
 }
 
