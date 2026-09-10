@@ -191,6 +191,16 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260910-2",
+      "releasedAt": "2026-09-10T12:09:52+02:00",
+      "changes": [
+        "De app opent standaard op de nieuwe tab Etappe van vandaag.",
+        "De meest recente uitslag is van Vueltadata naar Etappe van vandaag verplaatst.",
+        "De hoofdnavigatie is verdeeld in algemene tabs links en beheer- en deelnemerfuncties rechts.",
+        "Uitgevallen renners blijven zichtbaar op basis van de volledige selectie- en wisselgeschiedenis."
+      ]
+    },
+    {
       "version": "20260910-1",
       "releasedAt": "2026-09-10T10:42:29+02:00",
       "changes": [

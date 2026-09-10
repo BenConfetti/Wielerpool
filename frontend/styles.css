@@ -142,6 +142,19 @@ button.secondary {
   width: 100%;
 }
 
+.tab-group {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.tab-group-right {
+  margin-left: auto;
+}
+
+.tab-group-right .tab-button:first-child {
+  margin-left: 18px;
+}
+
 .tab-panel {
   display: none;
   gap: 6px;

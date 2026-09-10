@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Wielerpool</title>
-    <link rel="stylesheet" href="./styles.css?v=20260910-1">
+    <link rel="stylesheet" href="./styles.css?v=20260910-2">
   </head>
   <body>
     <header class="app-header">
@@ -16,25 +16,37 @@
     </header>
 
     <nav class="tabs" aria-label="Hoofdnavigatie">
-      <button class="tab-button active" type="button" data-tab-target="intro">Intro en spelregels</button>
-      <button class="tab-button" type="button" data-tab-target="mijnteam">Mijn team</button>
-      <button class="tab-button" type="button" data-tab-target="teamselectie">Teamselectie</button>
-      <button class="tab-button" type="button" data-tab-target="stand">Stand</button>
-      <button class="tab-button" type="button" data-tab-target="prijzenpot">Prijzenpot</button>
-      <button class="tab-button" type="button" data-tab-target="voortgang">Voortgang</button>
-      <button class="tab-button" type="button" data-tab-target="tourdata"><span id="roundDataLabel">Rondedata</span></button>
-      <button class="tab-button" type="button" data-tab-target="feedback">Feedback</button>
-      <button class="tab-button" type="button" data-tab-target="admin">Admin</button>
+      <span class="tab-group tab-group-left">
+        <button class="tab-button" type="button" data-tab-target="intro">Intro en spelregels</button>
+        <button class="tab-button active" type="button" data-tab-target="vandaag">Etappe van vandaag</button>
+        <button class="tab-button" type="button" data-tab-target="stand">Stand</button>
+        <button class="tab-button" type="button" data-tab-target="voortgang">Voortgang</button>
+      </span>
+      <span class="tab-group tab-group-right">
+        <button class="tab-button" type="button" data-tab-target="mijnteam">Mijn team</button>
+        <button class="tab-button" type="button" data-tab-target="teamselectie">Teamselectie</button>
+        <button class="tab-button" type="button" data-tab-target="tourdata"><span id="roundDataLabel">Rondedata</span></button>
+        <button class="tab-button" type="button" data-tab-target="prijzenpot">Prijzenpot</button>
+        <button class="tab-button" type="button" data-tab-target="feedback">Feedback</button>
+        <button class="tab-button" type="button" data-tab-target="admin">Admin</button>
+      </span>
     </nav>
 
     <div id="appLoadingStatus" class="app-loading-status is-hidden" role="status" aria-live="polite"></div>
 
     <main class="layout">
-      <section class="tab-panel active" data-tab-panel="intro">
+      <section class="tab-panel" data-tab-panel="intro">
         <section class="panel intro-panel">
           <h2>Intro en spelregels</h2>
           <div id="roundIntroContent"></div>
           <div id="teamVisuals" class="team-visuals"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel active" data-tab-panel="vandaag">
+        <section class="panel latest-stage-panel">
+          <h2>Etappe van vandaag</h2>
+          <div id="todayStageData" class="data-table">Laatste etappe wordt geladen...</div>
         </section>
       </section>
 
@@ -323,6 +335,6 @@
       </section>
     </main>
 
-    <script src="./round-loader.js?v=20260910-1"></script>
+    <script src="./round-loader.js?v=20260910-2"></script>
   </body>
 </html>

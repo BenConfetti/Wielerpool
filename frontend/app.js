@@ -106,6 +106,7 @@ const els = {
   details: document.getElementById("details"),
   startlistData: document.getElementById("startlistData"),
   withdrawnRidersData: document.getElementById("withdrawnRidersData"),
+  todayStageData: document.getElementById("todayStageData"),
   tourResultsData: document.getElementById("tourResultsData"),
   jerseyLogData: document.getElementById("jerseyLogData"),
   participantTeamsData: document.getElementById("participantTeamsData"),
@@ -1168,7 +1169,8 @@ function renderTeams() {
     .filter(({ team }) => participantMatches(team));
   if (!accessibleEntries.length) return;
   const accessMode = participantSelectionAccessMode();
-  const currentStageRoster = accessMode === "initial" ? null : calculateStandings(state).currentRosters;
+  const currentStandings = accessMode === "initial" ? null : calculateStandings(state);
+  const currentStageRoster = currentStandings?.currentRosters || null;
   accessibleEntries.forEach(({ team, index }) => {
     const calculatedRoster = currentStageRoster?.teams.find((entry) => entry.teamName === teamKey(team));
     const active = padRiderSlots(
@@ -1179,7 +1181,7 @@ function renderTeams() {
       calculatedRoster ? riderNamesToCurrentSelection(calculatedRoster.reserves) : parseRiderList(team.reserves),
       RESERVE_COUNT
     );
-    const withdrawn = selectedWithdrawnRidersOutsideCurrentRoster(team, active, reserve);
+    const withdrawn = selectedWithdrawnRidersOutsideCurrentRoster(team, active, reserve, currentStandings?.swapLog || []);
     const initialBudget = calculateTeamBudgetFromLists(active, reserve);
 
     const wrapper = document.createElement("article");
@@ -2206,8 +2208,9 @@ async function renderTourData() {
 }
 
 async function renderStageDataFiles() {
-  if (!els.tourResultsData) return;
+  if (!els.tourResultsData || !els.todayStageData) return;
   els.tourResultsData.innerHTML = "";
+  els.todayStageData.innerHTML = "";
 
   const availableStages = [];
   for (const stage of OFFICIAL_STAGE_FILES) {
@@ -2228,7 +2231,9 @@ async function renderStageDataFiles() {
     const latestSection = document.createElement("section");
     latestSection.className = "latest-stage-results";
     latestSection.innerHTML = renderLatestStageResults(latest.stage, latest.rows);
-    els.tourResultsData.appendChild(latestSection);
+    els.todayStageData.appendChild(latestSection);
+  } else {
+    els.todayStageData.innerHTML = '<p class="hint">Nog geen verwerkte etappe beschikbaar.</p>';
   }
 
   for (const stage of OFFICIAL_STAGE_FILES) {
@@ -2645,7 +2650,7 @@ function renderParticipantTeamsData() {
     const reserves = calculatedRoster
       ? calculatedRoster.reserves.map((name) => ({ name }))
       : storedReserves;
-    const withdrawn = selectedWithdrawnRidersOutsideCurrentRoster(team, active, reserves);
+    const withdrawn = selectedWithdrawnRidersOutsideCurrentRoster(team, active, reserves, standings.swapLog || []);
     const teamSwaps = (standings.swapLog || []).filter((row) => row.teamName === teamKey(team));
     const totalCost = [...storedActive, ...storedReserves].reduce((sum, rider) => sum + Number(rider.price || 0), 0);
     return `
@@ -2695,9 +2700,29 @@ function renderParticipantSwapLog(rows) {
   `;
 }
 
-function selectedWithdrawnRidersOutsideCurrentRoster(team, activeRiders, reserveRiders) {
+function selectedWithdrawnRidersOutsideCurrentRoster(team, activeRiders, reserveRiders, swapLog = []) {
   const current = new Set([...activeRiders, ...reserveRiders].map((rider) => normalizeName(rider.name)).filter(Boolean));
-  const selected = [...parseRiderList(team.riders), ...parseRiderList(team.reserves)];
+  const teamIndex = state.teams.indexOf(team);
+  const historicalSwaps = getAllManualSwaps(state)
+    .filter((swap) => swapMatchesTeam(swap, team, teamIndex));
+  const historicalSwapRows = swapLog
+    .filter((row) => row.teamName === teamKey(team) || normalizeName(row.teamName) === normalizeName(team.name));
+  const selected = [
+    ...parseRiderList(team.initialRiders || ""),
+    ...parseRiderList(team.initialReserves || ""),
+    ...parseRiderList(team.riders),
+    ...parseRiderList(team.reserves),
+    ...historicalSwaps.flatMap((swap) => [
+      ...parseRiderList(swap.riders || ""),
+      ...parseRiderList(swap.reserves || ""),
+      ...(swap.rows || []).flatMap((row) => [row.out, row.in]
+        .filter(Boolean)
+        .map((name) => ({ name, price: getCurrentRiderPrice(name, findRiderPrice(name)) })))
+    ]),
+    ...historicalSwapRows.flatMap((row) => [row.out, row.in]
+      .filter(Boolean)
+      .map((name) => ({ name, price: getCurrentRiderPrice(name, findRiderPrice(name)) })))
+  ];
   const seen = new Set();
   return selected.filter((rider) => {
     const key = normalizeName(rider.name);
