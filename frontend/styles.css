@@ -387,6 +387,29 @@ label {
   color: #7f1d1d;
 }
 
+.roster-row-withdrawn {
+  background: #fff1f1;
+  border-color: #dc8f8f;
+  color: #9d1b1b;
+}
+
+.roster-column-withdrawn {
+  border-color: #dc8f8f;
+  grid-column: 1 / -1;
+}
+
+.roster-column-withdrawn h5 {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.participant-withdrawn-riders {
+  background: #fff1f1;
+  border: 1px solid #dc8f8f;
+  color: #7f1d1d;
+  padding: 3px 6px;
+}
+
 input,
 select,
 textarea {
@@ -2720,6 +2743,22 @@ tbody tr:hover {
 }
 .rider-performance-team th:not(:first-child),
 .rider-performance-team td:not(:first-child) { white-space: nowrap; }
+
+.rider-performance-comparison .rider-team-score-group {
+  background: #edf7ed;
+  border-left: 2px solid #4f8f58;
+}
+
+.rider-performance-comparison .rider-overall-score-group,
+.rider-performance-comparison .rider-overall-start,
+.rider-performance-comparison tbody td:nth-last-child(-n + 7) {
+  background: #eef4fb;
+}
+
+.rider-performance-comparison .rider-overall-score-group,
+.rider-performance-comparison .rider-overall-start {
+  border-left: 3px solid #6887a8;
+}
 
 @media (max-width: 700px) {
   body { font-size: 12px; line-height: 1.25; }

@@ -308,7 +308,12 @@ els.teams?.addEventListener("drop", (event) => {
   event.preventDefault();
   const dragging = document.querySelector(".roster-dragging");
   clearRosterDropTargets();
-  if (!dragging || !canDropRosterRow(list, dragging)) return;
+  if (!dragging || !canDropRosterRow(list, dragging)) {
+    if (dragging?.dataset.rosterWithdrawn === "1" && list.dataset.rosterKind === "rider") {
+      showTeamSaveStatus("Deze renner is uitgevallen en kan niet meer in het startteam worden gezet.", "error");
+    }
+    return;
+  }
   const teamIndex = Number(list.dataset.rosterList);
   list.querySelector(".roster-empty")?.remove();
   const after = getRosterInsertBefore(list, event.clientY);
@@ -1163,7 +1168,7 @@ function renderTeams() {
     .filter(({ team }) => participantMatches(team));
   if (!accessibleEntries.length) return;
   const accessMode = participantSelectionAccessMode();
-  const currentStageRoster = accessMode === "exchange" ? calculateStandings(state).currentRosters : null;
+  const currentStageRoster = accessMode === "initial" ? null : calculateStandings(state).currentRosters;
   accessibleEntries.forEach(({ team, index }) => {
     const calculatedRoster = currentStageRoster?.teams.find((entry) => entry.teamName === teamKey(team));
     const active = padRiderSlots(
@@ -1174,6 +1179,7 @@ function renderTeams() {
       calculatedRoster ? riderNamesToCurrentSelection(calculatedRoster.reserves) : parseRiderList(team.reserves),
       RESERVE_COUNT
     );
+    const withdrawn = selectedWithdrawnRidersOutsideCurrentRoster(team, active, reserve);
     const initialBudget = calculateTeamBudgetFromLists(active, reserve);
 
     const wrapper = document.createElement("article");
@@ -1193,7 +1199,7 @@ function renderTeams() {
           <div class="team-selection-metric ${initialBudget.overBudget ? "over" : "budget-left"}" data-budget-status="${index}">${formatBudgetStatus(initialBudget)}</div>
         </div>
       </header>
-      ${renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode)}
+      ${renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode, withdrawn)}
     `;
     els.teams.appendChild(wrapper);
     updateTeamRiderAvailability(index, { preserveRoster: accessMode !== "initial" });
@@ -1235,8 +1241,8 @@ function renderTeamSelectionMatrix() {
           ${rows.map((row) => {
             const intensity = row.total / maxCount;
             return `
-              <tr>
-                <td class="${row.youth ? "rider-choice-youth" : ""}">${escapeHtml(row.displayName)}</td>
+              <tr class="${getStartlistStatus(row.name) ? "rider-choice-withdrawn" : ""}">
+                <td class="${row.youth ? "rider-choice-youth" : ""}">${escapeHtml(row.displayName)}${riderStatusBadge(row.name)}</td>
                 <td>${formatNumber(row.price)}</td>
                 <td><span class="selection-count selection-count-${selectionCountClass(intensity)}">${row.total}</span></td>
                 ${row.teams.map((cell) => `<td class="matrix-cell matrix-cell-${cell.kind || "empty"}">${cell.label}</td>`).join("")}
@@ -1355,10 +1361,23 @@ function renderRiderTeamOverview(teamIndex, activeRiders, reserveRiders) {
 
 function renderSelectedRosterPanel(teamIndex, activeRiders, reserveRiders, options = {}) {
   const editable = options.editable !== false;
+  const withdrawnRiders = options.withdrawnRiders || [];
   return `
     <div class="selected-roster-grid">
       ${renderRosterList(teamIndex, "rider", "Startteam", activeRiders, STARTER_COUNT, { editable })}
       ${renderRosterList(teamIndex, "reserve", "Reserves", reserveRiders, RESERVE_COUNT, { editable })}
+      ${withdrawnRiders.length ? renderWithdrawnRosterList(teamIndex, withdrawnRiders) : ""}
+    </div>
+  `;
+}
+
+function renderWithdrawnRosterList(teamIndex, riders) {
+  return `
+    <div class="roster-column roster-column-withdrawn">
+      <h5>Uitgevallen uit selectie <span>${riders.length}</span></h5>
+      <div class="roster-list roster-list-withdrawn">
+        ${riders.map((rider, index) => renderRosterRow(teamIndex, "withdrawn", rider, index + 1, { editable: false })).join("")}
+      </div>
     </div>
   `;
 }
@@ -1385,11 +1404,12 @@ function renderRosterList(teamIndex, kind, title, riders, targetCount, options =
 
 function renderRosterRow(teamIndex, kind, rider, position, options = {}) {
   const editable = options.editable !== false;
+  const status = getStartlistStatus(rider.name);
   return `
-    <div class="roster-row ${rider.youth ? "rider-choice-youth" : ""} ${editable ? "" : "roster-row-locked"}" draggable="${editable ? "true" : "false"}" data-roster-team="${teamIndex}" data-roster-kind="${kind}" data-roster-rider="${escapeAttr(rider.name)}" data-price="${Number(rider.price || 0)}" data-youth="${rider.youth ? "1" : "0"}">
+    <div class="roster-row ${rider.youth ? "rider-choice-youth" : ""} ${status ? "roster-row-withdrawn" : ""} ${editable ? "" : "roster-row-locked"}" draggable="${editable ? "true" : "false"}" data-roster-team="${teamIndex}" data-roster-kind="${kind}" data-roster-rider="${escapeAttr(rider.name)}" data-roster-withdrawn="${status ? "1" : "0"}" data-price="${Number(rider.price || 0)}" data-youth="${rider.youth ? "1" : "0"}">
       <span class="roster-grip" aria-hidden="true">${editable ? "&#8597;" : ""}</span>
       <span class="roster-position">${position}</span>
-      <span class="roster-name">${escapeHtml(rider.displayName)}</span>
+      <span class="roster-name">${escapeHtml(rider.displayName)}${riderStatusBadge(rider.name)}</span>
       <span class="roster-price">${formatNumber(Number(rider.price || 0))}</span>
     </div>
   `;
@@ -1919,6 +1939,7 @@ function rebalanceRosterLists(teamIndex, targetList, movedRow) {
 
 function canDropRosterRow(list, row) {
   const kind = list.dataset.rosterKind;
+  if (!GAME_LOGIC.canMoveRosterRiderToKind(row.dataset.rosterWithdrawn === "1", kind)) return false;
   const max = kind === "rider" ? STARTER_COUNT : RESERVE_COUNT;
   const current = list.querySelectorAll("[data-roster-rider]").length;
   const sourceKind = row.dataset.dragSourceKind;
@@ -2312,7 +2333,7 @@ function renderLatestResultTeamCell(riderName, team, stageRoster, countedByTeam)
   return `<td class="latest-result-team-cell result-role-${role}" title="${escapeAttr(displayTeamWithManager(team))}"></td>`;
 }
 
-function renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode) {
+function renderTeamEditorByAccessMode(index, team, active, reserve, initialBudget, accessMode, withdrawn = []) {
   if (accessMode !== "initial") {
     const editable = accessMode === "exchange";
     return `
@@ -2324,7 +2345,7 @@ function renderTeamEditorByAccessMode(index, team, active, reserve, initialBudge
           <input data-team-color1="${index}" value="${escapeAttr(team.color1 || "#f6d32d")}">
           <input data-team-color2="${index}" value="${escapeAttr(team.color2 || "#ffffff")}">
         </div>
-        <div data-selected-roster="${index}">${renderSelectedRosterPanel(index, active, reserve, { editable })}</div>
+        <div data-selected-roster="${index}">${renderSelectedRosterPanel(index, active, reserve, { editable, withdrawnRiders: withdrawn })}</div>
       </div>`;
   }
   return `
@@ -2624,6 +2645,7 @@ function renderParticipantTeamsData() {
     const reserves = calculatedRoster
       ? calculatedRoster.reserves.map((name) => ({ name }))
       : storedReserves;
+    const withdrawn = selectedWithdrawnRidersOutsideCurrentRoster(team, active, reserves);
     const teamSwaps = (standings.swapLog || []).filter((row) => row.teamName === teamKey(team));
     const totalCost = [...storedActive, ...storedReserves].reduce((sum, rider) => sum + Number(rider.price || 0), 0);
     return `
@@ -2633,12 +2655,13 @@ function renderParticipantTeamsData() {
         <div class="participant-grid">
           <div>
             <h4>Huidige starters</h4>
-            <ol>${active.map((rider) => `<li class="${isYouthRider(rider.name) ? "rider-choice-youth" : ""}">${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
+            <ol>${active.map(renderParticipantRosterRider).join("")}</ol>
           </div>
           <div>
             <h4>Huidige reserves op prioriteit</h4>
-            <ol>${reserves.map((rider) => `<li class="${isYouthRider(rider.name) ? "rider-choice-youth" : ""}">${escapeHtml(formatRiderName(rider.name))}</li>`).join("")}</ol>
+            <ol>${reserves.map(renderParticipantRosterRider).join("")}</ol>
           </div>
+          ${withdrawn.length ? `<div class="participant-withdrawn-riders"><h4>Uitgevallen uit selectie</h4><ul>${withdrawn.map(renderParticipantRosterRider).join("")}</ul></div>` : ""}
           <div class="participant-swap-log">
             <h4>Wissellog</h4>
             ${teamSwaps.length ? renderParticipantSwapLog(teamSwaps) : `<p class="hint">Nog geen handmatige of automatische wissels.</p>`}
@@ -2647,6 +2670,11 @@ function renderParticipantTeamsData() {
       </details>
     `;
   }).join("");
+}
+
+function renderParticipantRosterRider(rider) {
+  const status = getStartlistStatus(rider.name);
+  return `<li class="${isYouthRider(rider.name) ? "rider-choice-youth" : ""} ${status ? "rider-choice-withdrawn" : ""}">${escapeHtml(formatRiderName(rider.name))}${riderStatusBadge(rider.name)}</li>`;
 }
 
 function renderParticipantSwapLog(rows) {
@@ -2665,6 +2693,22 @@ function renderParticipantSwapLog(rows) {
       </tbody>
     </table>
   `;
+}
+
+function selectedWithdrawnRidersOutsideCurrentRoster(team, activeRiders, reserveRiders) {
+  const current = new Set([...activeRiders, ...reserveRiders].map((rider) => normalizeName(rider.name)).filter(Boolean));
+  const selected = [...parseRiderList(team.riders), ...parseRiderList(team.reserves)];
+  const seen = new Set();
+  return selected.filter((rider) => {
+    const key = normalizeName(rider.name);
+    if (!key || seen.has(key) || current.has(key) || !getStartlistStatus(rider.name)) return false;
+    seen.add(key);
+    return true;
+  }).map((rider) => ({
+    ...rider,
+    displayName: findRiderDisplayName(rider.name),
+    youth: rider.youth || isYouthRider(rider.name)
+  }));
 }
 
 function formatSwapAfterStage(row) {
@@ -2708,6 +2752,7 @@ function renderRiderPerformanceData() {
   }
   const money = calculateMoney(standings, state);
   const statsByTeam = cloneRiderStats(standings.riderStats);
+  const overallStats = buildOverallRiderPerformanceStats();
   standings.stageWinners.forEach((stageWinner) => {
     if (!stageWinner.teams.length) return;
     const share = money.stageWinnerPrize / stageWinner.teams.length;
@@ -2722,43 +2767,45 @@ function renderRiderPerformanceData() {
 
   els.riderPerformanceData.innerHTML = state.teams.map((team) => {
     const rows = [...(statsByTeam.get(teamKey(team)) || new Map()).values()]
-      .sort((a, b) => b.pointsTotal - a.pointsTotal || b.mountainTotal - a.mountainTotal || formatRiderName(a.rider).localeCompare(formatRiderName(b.rider), "nl"));
+      .map((row) => ({ ...row, overall: overallStats.get(normalizeName(row.rider)) || emptyOverallRiderPerformance() }))
+      .sort((a, b) => b.overall.pointsTotal - a.overall.pointsTotal || b.overall.mountainTotal - a.overall.mountainTotal || formatRiderName(a.rider).localeCompare(formatRiderName(b.rider), "nl"));
     return `
       <details class="rider-performance-team">
         <summary>${renderTeamKit(teamKey(team))} ${escapeHtml(displayTeamName(teamKey(team)))}</summary>
-        <p class="hint">De prestaties tonen de werkelijke uitslagen van starters én reserves. Alleen het aantal onder ‘Top 5 meegeteld’ en de teamstand worden door de opstelling bepaald.</p>
-        <table>
+        <p class="hint">Links staat wat de renner daadwerkelijk aan dit deelnemersteam heeft bijgedragen. Rechts staat zijn volledige score in de Vuelta, ook wanneer hij reserve was of nog niet meetelde.</p>
+        <table class="rider-performance-comparison">
           <thead>
             <tr>
-              <th>Renner</th>
-              <th>Status</th>
-              <th>Etappes actief</th>
-              <th>Top 5 meegeteld</th>
-              <th>Alg. totaal</th>
-              <th>Alg. gem.</th>
-              <th>Punten</th>
-              <th>Berg</th>
-              <th>Jong. totaal</th>
-              <th>Jong. gem.</th>
-              <th>Zeges</th>
-              <th>Euro</th>
+              <th rowspan="2">Renner</th>
+              <th rowspan="2">Status</th>
+              <th colspan="8" class="rider-team-score-group">Score voor dit team</th>
+              <th colspan="7" class="rider-overall-score-group">Totale score in de Vuelta</th>
+            </tr>
+            <tr>
+              <th>Actief</th><th>Alg. mee</th><th>Alg. bijdrage</th><th>Punten</th><th>Berg</th><th>Jongeren</th><th>Zeges</th><th>Euro</th>
+              <th class="rider-overall-start">Alg. totaal</th><th>Alg. gem.</th><th>Punten</th><th>Berg</th><th>Jong. totaal</th><th>Jong. gem.</th><th>Zeges</th>
             </tr>
           </thead>
           <tbody>
             ${rows.map((row) => `
-              <tr>
+              <tr class="${getStartlistStatus(row.rider) ? "rider-choice-withdrawn" : ""}">
                 <td>${escapeHtml(formatRiderName(row.rider))}</td>
                 <td>${escapeHtml(formatRiderPerformanceStatus(row))}</td>
                 <td>${row.activeStages}</td>
                 <td>${row.generalTopFiveCount}</td>
-                <td>${formatDuration(row.generalTotal)}</td>
-                <td>${row.generalCount ? formatDuration(row.generalTotal / row.generalCount) : "-"}</td>
-                <td>${formatNumber(row.pointsTotal)}</td>
-                <td>${formatNumber(row.mountainTotal)}</td>
-                <td>${formatDuration(row.youthTotal)}</td>
-                <td>${row.youthCount ? formatDuration(row.youthTotal / row.youthCount) : "-"}</td>
+                <td>${row.teamGeneralCount ? formatDuration(row.teamGeneralTotal) : "-"}</td>
+                <td>${formatNumber(row.teamPointsTotal)}</td>
+                <td>${formatNumber(row.teamMountainTotal)}</td>
+                <td>${row.teamYouthCount ? formatDuration(row.teamYouthTotal) : "-"}</td>
                 <td>${row.stageWins}</td>
                 <td>${formatCurrency(row.stageWinMoney)}</td>
+                <td class="rider-overall-start">${row.overall.generalCount ? formatDuration(row.overall.generalTotal) : "-"}</td>
+                <td>${row.overall.generalCount ? formatDuration(row.overall.generalTotal / row.overall.generalCount) : "-"}</td>
+                <td>${formatNumber(row.overall.pointsTotal)}</td>
+                <td>${formatNumber(row.overall.mountainTotal)}</td>
+                <td>${row.overall.youthCount ? formatDuration(row.overall.youthTotal) : "-"}</td>
+                <td>${row.overall.youthCount ? formatDuration(row.overall.youthTotal / row.overall.youthCount) : "-"}</td>
+                <td>${row.overall.stageWins}</td>
               </tr>
             `).join("")}
           </tbody>
@@ -2766,6 +2813,28 @@ function renderRiderPerformanceData() {
       </details>
     `;
   }).join("");
+}
+
+function emptyOverallRiderPerformance() {
+  return { generalTotal: 0, generalCount: 0, pointsTotal: 0, mountainTotal: 0, youthTotal: 0, youthCount: 0, stageWins: 0 };
+}
+
+function buildOverallRiderPerformanceStats() {
+  const stats = new Map();
+  state.stages.filter((stage) => GAME_LOGIC.stagePolicy(stage).scoreRiders).forEach((stage) => {
+    parseStageResults(stage.results).forEach((result) => {
+      if (!result.name) return;
+      const key = normalizeName(result.name);
+      const row = stats.get(key) || { rider: result.name, ...emptyOverallRiderPerformance() };
+      if (Number.isFinite(result.general)) { row.generalTotal += result.general; row.generalCount += 1; }
+      if (Number.isFinite(result.points)) row.pointsTotal += result.points;
+      if (Number.isFinite(result.mountain)) row.mountainTotal += result.mountain;
+      if (Number.isFinite(result.youth)) { row.youthTotal += result.youth; row.youthCount += 1; }
+      if (result.winner) row.stageWins += 1;
+      stats.set(key, row);
+    });
+  });
+  return stats;
 }
 
 function renderSwapLogData() {
@@ -2824,6 +2893,11 @@ function cloneRiderStats(statsByTeam) {
 }
 
 function formatRiderPerformanceStatus(row) {
+  const status = getStartlistStatus(row.rider);
+  if (status) {
+    const role = row.initialRole === "reserve" ? "Reserve" : "Starter";
+    return `${role} · ${status.code} in etappe ${status.stage}`;
+  }
   if (row.reserveWithdrawnStage) {
     return row.reserveWithdrawnReason
       ? `Reserve uitgevallen vanaf ${row.reserveWithdrawnStage} (${row.reserveWithdrawnReason})`
@@ -3335,6 +3409,15 @@ function recordRiderScore(riderStats, teamName, row, classification) {
   const stat = ensureRiderStat(riderStats, teamName, row.rider);
   if (classification.id === "general") {
     stat.generalTopFiveCount += 1;
+    stat.teamGeneralTotal += row.score;
+    stat.teamGeneralCount += 1;
+  } else if (classification.id === "points") {
+    stat.teamPointsTotal += row.score;
+  } else if (classification.id === "mountain") {
+    stat.teamMountainTotal += row.score;
+  } else if (classification.id === "youth") {
+    stat.teamYouthTotal += row.score;
+    stat.teamYouthCount += 1;
   }
 }
 
@@ -3363,6 +3446,12 @@ function ensureRiderStat(riderStats, teamName, riderName) {
       rider: riderName,
       activeStages: 0,
       generalTopFiveCount: 0,
+      teamGeneralTotal: 0,
+      teamGeneralCount: 0,
+      teamPointsTotal: 0,
+      teamMountainTotal: 0,
+      teamYouthTotal: 0,
+      teamYouthCount: 0,
       generalTotal: 0,
       generalCount: 0,
       pointsTotal: 0,

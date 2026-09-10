@@ -191,6 +191,15 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260910-1",
+      "releasedAt": "2026-09-10T10:42:29+02:00",
+      "changes": [
+        "Uitgevallen renners zijn in Mijn team en Teamselectie rood zichtbaar.",
+        "Uitgevallen renners kunnen tijdens wisselvensters niet naar het startteam worden gesleept.",
+        "Rennersprestaties scheiden de bijdrage aan het deelnemersteam van de totale Vueltascore."
+      ]
+    },
+    {
       "version": "20260909-1",
       "releasedAt": "2026-09-09T19:02:38+02:00",
       "changes": [

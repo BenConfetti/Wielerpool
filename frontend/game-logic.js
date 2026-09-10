@@ -15,6 +15,9 @@
     withdrawalEffectiveStage(code, stageNumber) {
       return String(code || "DNF").toUpperCase() === "DNS" ? Number(stageNumber) : Number(stageNumber) + 1;
     },
+    canMoveRosterRiderToKind(withdrawn, targetKind) {
+      return !(Boolean(withdrawn) && targetKind === "rider");
+    },
     splitPrize(amount, recipients) {
       return recipients > 0 ? Number(amount || 0) / recipients : 0;
     },
@@ -53,6 +56,7 @@
       check("Jongeren vereist drie geldige tijden", api.scoringDepth("youth", { scoringDepth: { youth: 3 } }) === 3 && api.requiresFullScoreCount("youth"));
       check("DNF wisselt vanaf volgende etappe", api.withdrawalEffectiveStage("DNF", 4) === 5);
       check("DNS wisselt in dezelfde etappe", api.withdrawalEffectiveStage("DNS", 4) === 4);
+      check("Uitgevallen renners kunnen niet terug naar het startteam", !api.canMoveRosterRiderToKind(true, "rider") && api.canMoveRosterRiderToKind(true, "reserve"));
       check("Gedeelde prijs wordt gelijk verdeeld", api.splitPrize(12, 3) === 4);
       check("DNF wordt niet als tijd nul gelezen", api.parseTimeValue("DNF") === null);
       check("Tijdnotatie wordt naar seconden omgerekend", api.parseTimeValue("1:02:03") === 3723);

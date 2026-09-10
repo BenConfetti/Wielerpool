@@ -6,7 +6,7 @@ const logic = globalThis.POOL_GAME_LOGIC;
 
 test("vaste spelregels slagen", () => {
   const results = logic.selfTest();
-  assert.equal(results.length, 10);
+  assert.equal(results.length, 11);
   assert.deepEqual(results.filter((result) => !result.passed), []);
 });
 
@@ -32,6 +32,12 @@ test("prijzen en uitvalmomenten zijn deterministisch", () => {
   assert.equal(logic.splitPrize(10, 0), 0);
   assert.equal(logic.withdrawalEffectiveStage("OTL", 8), 9);
   assert.equal(logic.withdrawalEffectiveStage("DNS", 8), 8);
+});
+
+test("uitgevallen renners kunnen alleen buiten het startteam worden verplaatst", () => {
+  assert.equal(logic.canMoveRosterRiderToKind(true, "rider"), false);
+  assert.equal(logic.canMoveRosterRiderToKind(true, "reserve"), true);
+  assert.equal(logic.canMoveRosterRiderToKind(false, "rider"), true);
 });
 
 test("handmatige wissels horen alleen bij rustdagen", () => {
