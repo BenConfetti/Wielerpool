@@ -1327,9 +1327,9 @@ textarea {
 
 .latest-results-scroll th,
 .latest-results-scroll td {
-  font-size: 12px;
-  height: 22px;
-  padding: 2px 3px;
+  font-size: 11px;
+  height: 19px;
+  padding: 1px 2px;
 }
 
 .latest-results-scroll th {
@@ -1349,23 +1349,23 @@ textarea {
 
 .latest-results-scroll th:first-child {
   left: 0;
-  min-width: 42px;
+  min-width: 30px;
   text-align: right;
-  width: 42px;
+  width: 30px;
 }
 
 .latest-results-scroll td:first-child {
   left: 0;
-  min-width: 42px;
+  min-width: 30px;
   text-align: right;
-  width: 42px;
+  width: 30px;
 }
 
 .latest-results-scroll th:nth-child(2),
 .latest-results-scroll td:nth-child(2) {
-  left: 42px;
-  min-width: 190px;
-  width: 190px;
+  left: 30px;
+  min-width: 145px;
+  width: 145px;
 }
 
 .latest-results-scroll th:first-child,
@@ -1390,21 +1390,21 @@ textarea {
 
 .latest-team-heading,
 .latest-result-team-cell {
-  max-width: 30px;
-  min-width: 30px;
-  width: 30px;
+  max-width: 22px;
+  min-width: 22px;
+  width: 22px;
 }
 
 .latest-team-heading {
-  height: 150px !important;
-  padding: 3px 2px !important;
+  height: 126px !important;
+  padding: 2px 1px !important;
   vertical-align: bottom;
 }
 
 .latest-team-heading span {
   display: inline-block;
   line-height: 1.05;
-  max-height: 142px;
+  max-height: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   transform: rotate(180deg);

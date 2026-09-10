@@ -191,6 +191,13 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260910-4",
+      "releasedAt": "2026-09-10T13:35:07+02:00",
+      "changes": [
+        "De tabel bij Etappe van vandaag gebruikt compactere positie-, renner- en teamkolommen."
+      ]
+    },
+    {
       "version": "20260910-3",
       "releasedAt": "2026-09-10T13:19:00+02:00",
       "changes": [
