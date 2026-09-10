@@ -2301,9 +2301,9 @@ function renderLatestStageResults(stage, rows) {
             <th>Pos.</th>
             <th>Renner</th>
             ${state.teams.map((team) => `<th class="latest-team-heading" title="${escapeAttr(displayTeamWithManager(team))}"><span>${escapeHtml(displayTeamName(teamKey(team)))}</span></th>`).join("")}
-            <th>Achterstand</th>
-            <th>Punten</th>
-            <th>Bergpunten</th>
+            <th><span>Achterstand</span></th>
+            <th><span>Punten</span></th>
+            <th><span>Bergpunten</span></th>
           </tr></thead>
           <tbody>${resultRows.map((row) => `<tr>
             <td>${row.position}</td>

@@ -1376,16 +1376,29 @@ textarea {
 
 .latest-stage-table th:nth-last-child(-n+3),
 .latest-stage-table td:nth-last-child(-n+3) {
-  min-width: 46px;
+  min-width: 30px;
   text-align: right;
-  width: 46px;
+  width: 30px;
   white-space: nowrap;
 }
 
 .latest-stage-table th:nth-last-child(3),
 .latest-stage-table td:nth-last-child(3) {
-  min-width: 58px;
-  width: 58px;
+  min-width: 44px;
+  width: 44px;
+}
+
+.latest-stage-table th:nth-last-child(-n+3) {
+  height: 92px;
+  line-height: 1;
+  padding: 3px 1px;
+  vertical-align: bottom;
+}
+
+.latest-stage-table th:nth-last-child(-n+3) span {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
 }
 
 .latest-team-heading,
