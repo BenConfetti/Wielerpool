@@ -406,21 +406,9 @@ label {
   color: #9d1b1b;
 }
 
-.roster-column-withdrawn {
-  border-color: #dc8f8f;
-  grid-column: 1 / -1;
-}
-
-.roster-column-withdrawn h5 {
-  background: #fee2e2;
-  color: #7f1d1d;
-}
-
-.participant-withdrawn-riders {
-  background: #fff1f1;
-  border: 1px solid #dc8f8f;
-  color: #7f1d1d;
-  padding: 3px 6px;
+.roster-withdrawn-history {
+  border-top: 1px dashed #dc8f8f;
+  padding: 2px;
 }
 
 input,

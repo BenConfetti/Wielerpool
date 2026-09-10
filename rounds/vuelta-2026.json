@@ -191,6 +191,15 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260910-3",
+      "releasedAt": "2026-09-10T13:19:00+02:00",
+      "changes": [
+        "Historische uitvallers staan voortaan rood onderaan dezelfde reservelijst.",
+        "Historische uitvallers blijven buiten de inzetbare reservevolgorde en kunnen niet naar het startteam.",
+        "Teamselectie staat in de linkergroep van de hoofdnavigatie."
+      ]
+    },
+    {
       "version": "20260910-2",
       "releasedAt": "2026-09-10T12:09:52+02:00",
       "changes": [

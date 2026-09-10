@@ -1367,19 +1367,7 @@ function renderSelectedRosterPanel(teamIndex, activeRiders, reserveRiders, optio
   return `
     <div class="selected-roster-grid">
       ${renderRosterList(teamIndex, "rider", "Startteam", activeRiders, STARTER_COUNT, { editable })}
-      ${renderRosterList(teamIndex, "reserve", "Reserves", reserveRiders, RESERVE_COUNT, { editable })}
-      ${withdrawnRiders.length ? renderWithdrawnRosterList(teamIndex, withdrawnRiders) : ""}
-    </div>
-  `;
-}
-
-function renderWithdrawnRosterList(teamIndex, riders) {
-  return `
-    <div class="roster-column roster-column-withdrawn">
-      <h5>Uitgevallen uit selectie <span>${riders.length}</span></h5>
-      <div class="roster-list roster-list-withdrawn">
-        ${riders.map((rider, index) => renderRosterRow(teamIndex, "withdrawn", rider, index + 1, { editable: false })).join("")}
-      </div>
+      ${renderRosterList(teamIndex, "reserve", "Reserves", reserveRiders, RESERVE_COUNT, { editable, withdrawnRiders })}
     </div>
   `;
 }
@@ -1393,13 +1381,18 @@ function renderRosterList(teamIndex, kind, title, riders, targetCount, options =
       displayName: findRiderDisplayName(rider.name),
       youth: rider.youth || isYouthRider(rider.name)
     }));
+  const withdrawnRows = kind === "reserve" ? (options.withdrawnRiders || []) : [];
+  const countLabel = withdrawnRows.length
+    ? `${rows.length} inzetbaar, ${withdrawnRows.length} uitgevallen`
+    : `${rows.length}/${targetCount}`;
 
   return `
     <div class="roster-column roster-column-${kind}">
-      <h5>${escapeHtml(title)} <span>${rows.length}/${targetCount}</span></h5>
+      <h5>${escapeHtml(title)} <span>${countLabel}</span></h5>
       <div class="roster-list" data-roster-list="${teamIndex}" data-roster-kind="${kind}">
         ${rows.length ? rows.map((rider, index) => renderRosterRow(teamIndex, kind, rider, index + 1, options)).join("") : "<p class=\"hint roster-empty\">Nog geen renners gekozen.</p>"}
       </div>
+      ${withdrawnRows.length ? `<div class="roster-withdrawn-history">${withdrawnRows.map((rider, index) => renderRosterRow(teamIndex, "withdrawn", rider, rows.length + index + 1, { editable: false })).join("")}</div>` : ""}
     </div>
   `;
 }
@@ -1883,7 +1876,14 @@ function updateRosterPositions(teamIndex) {
       if (position) position.textContent = String(index + 1);
       row.dataset.rosterKind = kind;
     });
-    if (title) title.textContent = `${rows.length}/${targetCount}`;
+    if (title) {
+      const withdrawnCount = kind === "reserve"
+        ? list.closest(".roster-column")?.querySelectorAll(".roster-withdrawn-history .roster-row").length || 0
+        : 0;
+      title.textContent = withdrawnCount
+        ? `${rows.length} inzetbaar, ${withdrawnCount} uitgevallen`
+        : `${rows.length}/${targetCount}`;
+    }
     list.querySelector(".roster-empty")?.remove();
     if (!rows.length) {
       list.innerHTML = "<p class=\"hint roster-empty\">Nog geen renners gekozen.</p>";
@@ -2664,9 +2664,8 @@ function renderParticipantTeamsData() {
           </div>
           <div>
             <h4>Huidige reserves op prioriteit</h4>
-            <ol>${reserves.map(renderParticipantRosterRider).join("")}</ol>
+            <ol>${[...reserves, ...withdrawn].map(renderParticipantRosterRider).join("")}</ol>
           </div>
-          ${withdrawn.length ? `<div class="participant-withdrawn-riders"><h4>Uitgevallen uit selectie</h4><ul>${withdrawn.map(renderParticipantRosterRider).join("")}</ul></div>` : ""}
           <div class="participant-swap-log">
             <h4>Wissellog</h4>
             ${teamSwaps.length ? renderParticipantSwapLog(teamSwaps) : `<p class="hint">Nog geen handmatige of automatische wissels.</p>`}
