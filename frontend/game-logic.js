@@ -31,6 +31,31 @@
       const numeric = Number(raw.replace(",", "."));
       return Number.isFinite(numeric) ? numeric : null;
     },
+    splitDelimitedLine(line) {
+      const source = String(line ?? "");
+      const delimiter = source.includes("\t") ? "\t" : source.includes(";") ? ";" : ",";
+      const cells = [];
+      let cell = "";
+      let quoted = false;
+      for (let index = 0; index < source.length; index += 1) {
+        const character = source[index];
+        if (character === '"') {
+          if (quoted && source[index + 1] === '"') {
+            cell += '"';
+            index += 1;
+          } else {
+            quoted = !quoted;
+          }
+        } else if (character === delimiter && !quoted) {
+          cells.push(cell.trim());
+          cell = "";
+        } else {
+          cell += character;
+        }
+      }
+      cells.push(cell.trim());
+      return cells;
+    },
     teamKey(team) {
       if (team?.id) return `team:${team.id}`;
       const normalize = (value) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -60,6 +85,7 @@
       check("Gedeelde prijs wordt gelijk verdeeld", api.splitPrize(12, 3) === 4);
       check("DNF wordt niet als tijd nul gelezen", api.parseTimeValue("DNF") === null);
       check("Tijdnotatie wordt naar seconden omgerekend", api.parseTimeValue("1:02:03") === 3723);
+      check("Komma-decimalen in CSV blijven in dezelfde kolom", JSON.stringify(api.splitDelimitedLine('"Renner","2,27","17","0"')) === JSON.stringify(["Renner", "2,27", "17", "0"]));
       check("Deelnemer-teams hebben een unieke sleutel", api.teamKey({ id: "abc", name: "Sam" }) !== api.teamKey({ id: "def", name: "Sam" }));
       check("Alleen ingestelde rustdagen leveren handmatige wissels", api.isConfiguredRestDaySwap(9, [{ afterStage: 9 }, { afterStage: 15 }]) && !api.isConfiguredRestDaySwap(1, [{ afterStage: 9 }, { afterStage: 15 }]));
       check("Gelijke scores volgen de officiële dagpositie", api.compareStageScores({ score: 0, position: 10 }, { score: 0, position: 25 }, "low") < 0);

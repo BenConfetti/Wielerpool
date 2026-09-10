@@ -6,7 +6,7 @@ const logic = globalThis.POOL_GAME_LOGIC;
 
 test("vaste spelregels slagen", () => {
   const results = logic.selfTest();
-  assert.equal(results.length, 11);
+  assert.equal(results.length, 12);
   assert.deepEqual(results.filter((result) => !result.passed), []);
 });
 
@@ -26,6 +26,14 @@ test("ongeldige tijden worden nooit nul", () => {
   assert.equal(logic.parseTimeValue("geen tijd"), null);
   assert.equal(logic.parseTimeValue("+01:25"), 85);
   assert.equal(logic.parseTimeValue("2,27"), 2.27);
+});
+
+test("CSV houdt komma-decimalen en aanhalingstekens bij elkaar", () => {
+  assert.deepEqual(
+    logic.splitDelimitedLine('"THORNLEY Callum","2,27","17","0","0","",""'),
+    ["THORNLEY Callum", "2,27", "17", "0", "0", "", ""]
+  );
+  assert.deepEqual(logic.splitDelimitedLine('"Naam met ""quote""",1'), ['Naam met "quote"', "1"]);
 });
 
 test("prijzen en uitvalmomenten zijn deterministisch", () => {

@@ -4748,8 +4748,7 @@ function parseDelimitedRows(value) {
 }
 
 function splitDelimitedLine(line) {
-  const delimiter = line.includes("\t") ? "\t" : line.includes(";") ? ";" : ",";
-  return line.split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ""));
+  return GAME_LOGIC.splitDelimitedLine(line);
 }
 
 function buildHeaderIndex(headers) {

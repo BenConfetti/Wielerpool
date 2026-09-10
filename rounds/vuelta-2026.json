@@ -196,6 +196,15 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260910-8",
+      "releasedAt": "2026-09-10T23:07:33+02:00",
+      "changes": [
+        "Etappe-CSV's met komma-decimalen worden correct gelezen; tijdrit-honderdsten verschuiven niet langer naar punten, bergpunten of jongeren.",
+        "De puntenstanden worden daardoor opnieuw correct vanaf etappe 1 opgebouwd, met uitsluitend de werkelijk behaalde dagpunten.",
+        "De tabel Etappe van vandaag toont de juiste punten en markeert alleen echte jongeren vet."
+      ]
+    },
+    {
       "version": "20260910-7",
       "releasedAt": "2026-09-10T22:42:54+02:00",
       "changes": [
