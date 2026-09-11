@@ -6,7 +6,7 @@ const logic = globalThis.POOL_GAME_LOGIC;
 
 test("vaste spelregels slagen", () => {
   const results = logic.selfTest();
-  assert.equal(results.length, 12);
+  assert.equal(results.length, 13);
   assert.deepEqual(results.filter((result) => !result.passed), []);
 });
 
@@ -34,6 +34,16 @@ test("CSV houdt komma-decimalen en aanhalingstekens bij elkaar", () => {
     ["THORNLEY Callum", "2,27", "17", "0", "0", "", ""]
   );
   assert.deepEqual(logic.splitDelimitedLine('"Naam met ""quote""",1'), ['Naam met "quote"', "1"]);
+});
+
+test("prijzenkast gebruikt de afgesproken sortering", () => {
+  const teams = [
+    { name: "Vijf etappes", wins: { general: [], points: [], mountain: [], youth: [], stages: [1, 2, 3, 4, 5] } },
+    { name: "Jongeren", wins: { general: [], points: [], mountain: [], youth: [1], stages: [] } },
+    { name: "Algemeen", wins: { general: [1], points: [], mountain: [], youth: [], stages: [] } },
+    { name: "Punten", wins: { general: [], points: [1], mountain: [], youth: [], stages: [] } }
+  ].sort(logic.compareTrophyCabinetTeams);
+  assert.deepEqual(teams.map((team) => team.name), ["Algemeen", "Punten", "Jongeren", "Vijf etappes"]);
 });
 
 test("prijzen en uitvalmomenten zijn deterministisch", () => {

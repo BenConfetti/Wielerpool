@@ -69,6 +69,7 @@ const exampleState = {
   teams: [],
   stages: [],
   manualSwaps: [],
+  trophyHistory: [],
   dataVersion: DATA_VERSION
 };
 
@@ -116,6 +117,7 @@ const els = {
   riderPerformanceData: document.getElementById("riderPerformanceData"),
   swapLogData: document.getElementById("swapLogData"),
   prizePotData: document.getElementById("prizePotData"),
+  trophyCabinetData: document.getElementById("trophyCabinetData"),
   historyData: document.getElementById("historyData"),
   chartsData: document.getElementById("chartsData"),
   teamVisuals: document.getElementById("teamVisuals"),
@@ -695,6 +697,7 @@ function render() {
   renderRiderPerformanceData();
   renderSwapLogData();
   renderPrizePotData();
+  renderTrophyCabinetData();
   renderHistoryData();
   renderChartsData();
   renderTourData();
@@ -4332,6 +4335,164 @@ function readBcPricesFromForm() {
   return prices;
 }
 
+function renderTrophyCabinetData() {
+  if (!els.trophyCabinetData) return;
+  const teams = buildTrophyCabinetTeams();
+  if (!teams.length) {
+    els.trophyCabinetData.innerHTML = "Nog geen teams in de prijzenkast.";
+    return;
+  }
+  els.trophyCabinetData.innerHTML = teams.map((team, index) => `
+    <article class="trophy-team">
+      <header>
+        <span class="trophy-rank">${index + 1}</span>
+        <span>${renderTrophyTeamKit(team)}</span>
+        <span><strong>${escapeHtml(team.name)}</strong>${team.managers.length ? ` <span class="hint">(ploegleider${team.managers.length > 1 ? "s" : ""}: ${escapeHtml(team.managers.join(", "))})</span>` : ""}</span>
+      </header>
+      <div class="trophy-team-honours">
+        ${renderTrophyClassificationRows(team)}
+        ${renderTrophyStageRow(team)}
+        ${team.totalWins === 0 ? '<p class="trophy-empty">Nog geen overwinningen</p>' : ""}
+      </div>
+    </article>
+  `).join("");
+}
+
+function buildTrophyCabinetTeams() {
+  const byName = new Map();
+  const ensureTeam = (name, manager = "", colors = {}) => {
+    const displayName = String(name || "").trim();
+    if (!displayName) return null;
+    const key = normalizeName(displayName);
+    if (!byName.has(key)) {
+      byName.set(key, {
+        name: displayName,
+        managers: [],
+        color1: colors.color1 || "#f6d32d",
+        color2: colors.color2 || "#ffffff",
+        wins: { general: [], points: [], mountain: [], youth: [], stages: [] }
+      });
+    }
+    const entry = byName.get(key);
+    if (manager && !entry.managers.includes(manager)) entry.managers.push(manager);
+    return entry;
+  };
+
+  [...(Array.isArray(ROUND_CONFIG.trophyHistory) ? ROUND_CONFIG.trophyHistory : []), ...(Array.isArray(state.trophyHistory) ? state.trophyHistory : [])].forEach((historic) => {
+    const entry = ensureTeam(historic.teamName || historic.name, historic.participantName || "", historic);
+    if (!entry) return;
+    ["general", "points", "mountain", "youth", "stages"].forEach((kind) => {
+      entry.wins[kind].push(...(Array.isArray(historic.wins?.[kind]) ? historic.wins[kind] : []));
+    });
+  });
+
+  state.teams.forEach((team) => ensureTeam(team.teamName || team.name, team.name, team));
+  const standings = calculateStandings(state);
+  const roundLabel = `${ROUND_CONFIG.competition || ROUND_CONFIG.name || "Ronde"} ${ROUND_CONFIG.year || ""}`.trim();
+  standings.stageWinners.forEach((stageWinner) => {
+    stageWinner.teams.forEach((teamKeyValue) => {
+      const team = getTeamByName(teamKeyValue);
+      const entry = ensureTeam(team?.teamName || displayTeamName(teamKeyValue), team?.name || "", team || {});
+      if (entry) entry.wins.stages.push({ round: roundLabel, stage: stageWinner.stage });
+    });
+  });
+
+  const completedStages = state.stages.filter(isCompletedStage).length;
+  const roundFinished = completedStages >= Number(state.settings.stageCount || ROUND_SETTINGS.stageCount || 0);
+  if (roundFinished) {
+    CLASSIFICATIONS.forEach((classification) => {
+      getTiedLeaders(standings.total[classification.id], classification).forEach((winner) => {
+        const team = getTeamByName(winner.name);
+        const entry = ensureTeam(team?.teamName || displayTeamName(winner.name), team?.name || "", team || {});
+        if (entry) entry.wins[classification.id].push(roundLabel);
+      });
+    });
+  }
+
+  return [...byName.values()]
+    .map((team) => ({
+      ...team,
+      managers: [...team.managers].sort((a, b) => a.localeCompare(b, "nl")),
+      totalWins: Object.values(team.wins).reduce((total, wins) => total + wins.length, 0)
+    }))
+    .sort(GAME_LOGIC.compareTrophyCabinetTeams);
+}
+
+function renderTrophyClassificationRows(team) {
+  const labels = {
+    general: "Algemeen klassement",
+    points: "Puntenklassement",
+    mountain: "Bergklassement",
+    youth: "Jongerenklassement"
+  };
+  return ["general", "points", "mountain", "youth"].map((kind) => {
+    const grouped = groupTrophyLabelsByRace(team.wins[kind]);
+    return [...grouped.values()].map((group) => `
+      <div class="trophy-honour-row">
+        <strong class="trophy-count">${group.years.length > 1 ? `${group.years.length}×` : ""}</strong>
+        <span class="trophy-icons trophy-jerseys">${group.years.map((year, index) => renderTrophyJersey(kind, group.race, year, index)).join("")}</span>
+        <span>${escapeHtml(labels[kind])} ${escapeHtml(group.race)} <span class="trophy-years">(${escapeHtml(group.years.join(", "))})</span></span>
+      </div>
+    `).join("");
+  }).join("");
+}
+
+function renderTrophyStageRow(team) {
+  if (!team.wins.stages.length) return "";
+  const grouped = new Map();
+  team.wins.stages.forEach((win) => {
+    const round = typeof win === "string" ? win : win.round;
+    grouped.set(round, (grouped.get(round) || 0) + 1);
+  });
+  return [...grouped.entries()].map(([round, count]) => `
+    <div class="trophy-honour-row trophy-stage-row">
+      <strong class="trophy-count">${count > 1 ? `${count}×` : ""}</strong>
+      <span class="trophy-icons trophy-medals">${Array.from({ length: count }, () => '<span class="trophy-medal" title="Etappeoverwinning">●</span>').join("")}</span>
+      <span>Etappeoverwinningen ${escapeHtml(round)}</span>
+    </div>
+  `).join("");
+}
+
+function groupTrophyLabelsByRace(labels) {
+  return (labels || []).reduce((grouped, label) => {
+    const value = String(label || "").trim();
+    const match = value.match(/^(.*?)(?:\s+(\d{4}))?$/);
+    const race = match?.[1]?.trim() || value;
+    const year = match?.[2] || "";
+    const key = normalizeName(race);
+    if (!grouped.has(key)) grouped.set(key, { race, years: [] });
+    if (year && !grouped.get(key).years.includes(year)) grouped.get(key).years.push(year);
+    grouped.get(key).years.sort((a, b) => Number(b) - Number(a));
+    return grouped;
+  }, new Map());
+}
+
+function renderTrophyJersey(classificationId, race, year, index) {
+  const normalizedRace = normalizeName(race);
+  const raceType = normalizedRace.includes("tour de france") ? "tour" : normalizedRace.includes("giro") ? "giro" : "vuelta";
+  const title = `${CLASSIFICATIONS.find((item) => item.id === classificationId)?.label || classificationId} ${race} ${year}`.trim();
+  const colors = {
+    tour: { general: "#ffd900", points: "#009a44", mountain: "#ffffff", youth: "#ffffff", mountainDot: "#d61f26" },
+    vuelta: { general: "#d71920", points: "#009f4d", mountain: "#ffffff", youth: "#ffffff", mountainDot: "#2563eb" },
+    giro: { general: "#f4a3b4", points: "#7b2cbf", mountain: "#2563eb", youth: "#ffffff", mountainDot: "" }
+  }[raceType];
+  const patternId = `trophy-${raceType}-${classificationId}-${year}-${index}`;
+  const usesDots = classificationId === "mountain" && colors.mountainDot;
+  const fill = usesDots ? `url(#${patternId})` : colors[classificationId];
+  const path = "M11 2H15C15.5 4 16.5 5 18 5S20.5 4 21 2H25L32 7L28 14L25 12V31H11V12L8 14L4 7Z";
+  return `
+    <svg class="trophy-jersey-svg" style="z-index:${index + 1}" viewBox="0 0 36 34" role="img" aria-label="${escapeAttr(title)}">
+      ${usesDots ? `<defs><pattern id="${patternId}" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#ffffff"></rect><circle cx="2" cy="2" r="1.5" fill="${colors.mountainDot}"></circle></pattern></defs>` : ""}
+      <path d="${path}" fill="#ffffff" stroke="#ffffff" stroke-width="6" stroke-linejoin="round"></path>
+      <path d="${path}" fill="${fill}" stroke="#111111" stroke-width="2" stroke-linejoin="round"></path>
+    </svg>
+  `;
+}
+
+function renderTrophyTeamKit(team) {
+  return `<span class="kit-swatch" style="${kitStyle(team)}" title="${escapeAttr(team.name)}"></span>`;
+}
+
 function recordOverwrittenPriceWarnings() {
   const candidates = state.priceOverwriteCandidates || {};
   Object.entries(candidates).forEach(([riderName, previousPrice]) => {
@@ -5330,6 +5491,7 @@ async function deleteAdminTeam(teamId) {
     showAdminSaveStatus(error.message || "Team kon niet worden verwijderd; bestaande gegevens zijn behouden.", "error");
     return;
   }
+  archiveTeamForTrophyCabinet(team);
   state.teams = state.teams.filter((item) => String(item.id || "") !== String(team.id));
   state.manualSwaps = (state.manualSwaps || []).filter((swap) => String(swap.teamId || "") !== String(team.id));
   state.chartTeams = (state.chartTeams || []).filter((key) => key !== teamKey(team));
@@ -5342,6 +5504,24 @@ async function deleteAdminTeam(teamId) {
   persistState();
   render();
   showAdminSaveStatus(`${label} is verwijderd.`, "success");
+}
+
+function archiveTeamForTrophyCabinet(team) {
+  const archiveName = String(team?.teamName || team?.name || "").trim();
+  if (!archiveName) return;
+  const current = buildTrophyCabinetTeams().find((entry) => normalizeName(entry.name) === normalizeName(archiveName));
+  if (!current) return;
+  const historic = {
+    teamName: current.name,
+    participantName: team.name || "",
+    color1: current.color1,
+    color2: current.color2,
+    wins: structuredClone(current.wins)
+  };
+  state.trophyHistory = [
+    ...(Array.isArray(state.trophyHistory) ? state.trophyHistory : []).filter((entry) => normalizeName(entry.teamName || entry.name) !== normalizeName(archiveName)),
+    historic
+  ];
 }
 
 function lastLoadedStageName() {

@@ -56,6 +56,14 @@
       cells.push(cell.trim());
       return cells;
     },
+    compareTrophyCabinetTeams(a, b) {
+      const order = ["general", "points", "mountain", "youth", "stages"];
+      for (const kind of order) {
+        const difference = Number(b?.wins?.[kind]?.length || 0) - Number(a?.wins?.[kind]?.length || 0);
+        if (difference) return difference;
+      }
+      return String(a?.name || "").localeCompare(String(b?.name || ""), "nl");
+    },
     teamKey(team) {
       if (team?.id) return `team:${team.id}`;
       const normalize = (value) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -86,6 +94,7 @@
       check("DNF wordt niet als tijd nul gelezen", api.parseTimeValue("DNF") === null);
       check("Tijdnotatie wordt naar seconden omgerekend", api.parseTimeValue("1:02:03") === 3723);
       check("Komma-decimalen in CSV blijven in dezelfde kolom", JSON.stringify(api.splitDelimitedLine('"Renner","2,27","17","0"')) === JSON.stringify(["Renner", "2,27", "17", "0"]));
+      check("Prijzenkast sorteert eerst op eindklassementen", api.compareTrophyCabinetTeams({ name: "Etappes", wins: { general: [], points: [], mountain: [], youth: [], stages: [1, 2, 3] } }, { name: "Algemeen", wins: { general: [1], points: [], mountain: [], youth: [], stages: [] } }) > 0);
       check("Deelnemer-teams hebben een unieke sleutel", api.teamKey({ id: "abc", name: "Sam" }) !== api.teamKey({ id: "def", name: "Sam" }));
       check("Alleen ingestelde rustdagen leveren handmatige wissels", api.isConfiguredRestDaySwap(9, [{ afterStage: 9 }, { afterStage: 15 }]) && !api.isConfiguredRestDaySwap(1, [{ afterStage: 9 }, { afterStage: 15 }]));
       check("Gelijke scores volgen de officiële dagpositie", api.compareStageScores({ score: 0, position: 10 }, { score: 0, position: 25 }, "low") < 0);

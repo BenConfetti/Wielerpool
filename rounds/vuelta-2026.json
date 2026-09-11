@@ -196,6 +196,19 @@
   "priceVersion": "pcs-profile-model-2026-08-20-v6",
   "releaseHistory": [
     {
+      "version": "20260911-1",
+      "releasedAt": "2026-09-11T15:03:36+02:00",
+      "changes": [
+        "Nieuw rechtertabblad Prijzenkast met alle deelnemende teams en hun overwinningen.",
+        "Iedere voorspelde etappewinnaar levert een kleine gouden medaille op; het aantal medailles is gelijk aan het aantal gewonnen etappes.",
+        "Eindwinnaars krijgen per gewonnen algemeen, punten-, berg- of jongerenklassement een bijpassend tricot, pas nadat de ronde volledig is afgerond.",
+        "De prijzenkast wordt gesorteerd op algemeen, punten, berg, jongeren en daarna etappeoverwinningen.",
+        "De prijzenkastgeschiedenis blijft bewaard wanneer een deelnemersteam later via Admin wordt verwijderd.",
+        "Eindzeges worden per Giro, Tour of Vuelta op één regel gegroepeerd, met overlappende truien en de gewonnen jaren ernaast.",
+        "De truitjes gebruiken per grote ronde de officiële klassementskleuren."
+      ]
+    },
+    {
       "version": "20260910-8",
       "releasedAt": "2026-09-10T23:07:33+02:00",
       "changes": [

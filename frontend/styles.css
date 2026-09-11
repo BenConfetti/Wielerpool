@@ -165,6 +165,136 @@ button.secondary {
   display: grid;
 }
 
+.trophy-cabinet-data {
+  display: grid;
+  gap: 7px;
+}
+
+.trophy-team {
+  border: 1px solid var(--strong-line);
+  background: #ffffff;
+}
+
+.trophy-team > header {
+  align-items: center;
+  background: #f4f4f4;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 24px 22px minmax(0, 1fr);
+  padding: 5px 7px;
+}
+
+.trophy-rank {
+  color: var(--muted);
+  font-weight: 700;
+  text-align: right;
+}
+
+.trophy-team-honours {
+  display: grid;
+  gap: 3px;
+  padding: 6px 8px;
+}
+
+.trophy-honour-row {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 30px minmax(30px, auto) minmax(150px, 1fr);
+  min-height: 50px;
+}
+
+.trophy-count {
+  text-align: right;
+}
+
+.trophy-icons {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.trophy-icons .leader-jersey {
+  flex: 0 0 34px;
+  transform: scale(.72);
+  transform-origin: center;
+  margin: -7px -5px;
+}
+
+.trophy-jerseys {
+  gap: 0;
+  padding-right: 8px;
+}
+
+.trophy-jersey-svg {
+  display: block;
+  flex: 0 0 36px;
+  height: 34px;
+  overflow: visible;
+  position: relative;
+  width: 36px;
+}
+
+.trophy-jerseys .trophy-jersey-svg + .trophy-jersey-svg {
+  margin-left: -22px;
+}
+
+.trophy-years {
+  color: var(--muted);
+}
+
+.trophy-jersey-tour-general { --jersey-fill: #ffd900; --jersey-pattern: none; }
+.trophy-jersey-tour-points { --jersey-fill: #009a44; --jersey-pattern: none; }
+.trophy-jersey-tour-mountain { --jersey-fill: #ffffff; --jersey-pattern: radial-gradient(circle, #d61f26 24%, transparent 27%); --jersey-pattern-size: 9px 9px; }
+.trophy-jersey-tour-youth { --jersey-fill: #ffffff; --jersey-pattern: none; }
+.trophy-jersey-vuelta-general { --jersey-fill: #d71920; --jersey-pattern: none; }
+.trophy-jersey-vuelta-points { --jersey-fill: #009f4d; --jersey-pattern: none; }
+.trophy-jersey-vuelta-mountain { --jersey-fill: #ffffff; --jersey-pattern: radial-gradient(circle, #2563eb 24%, transparent 27%); --jersey-pattern-size: 9px 9px; }
+.trophy-jersey-vuelta-youth { --jersey-fill: #ffffff; --jersey-pattern: none; }
+.trophy-jersey-giro-general { --jersey-fill: #f4a3b4; --jersey-pattern: none; }
+.trophy-jersey-giro-points { --jersey-fill: #7b2cbf; --jersey-pattern: none; }
+.trophy-jersey-giro-mountain { --jersey-fill: #2563eb; --jersey-pattern: none; }
+.trophy-jersey-giro-youth { --jersey-fill: #ffffff; --jersey-pattern: none; }
+
+.trophy-stage-row {
+  min-height: 25px;
+}
+
+.trophy-medals {
+  gap: 3px;
+}
+
+.trophy-medal {
+  align-items: center;
+  background: radial-gradient(circle at 35% 30%, #fff2a8 0 12%, #f4c542 35%, #b67a00 100%);
+  border: 1px solid #9b6900;
+  border-radius: 50%;
+  color: transparent;
+  display: inline-flex;
+  height: 12px;
+  justify-content: center;
+  margin-top: 5px;
+  position: relative;
+  width: 12px;
+}
+
+.trophy-medal::before {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 7px solid #b91c1c;
+  content: "";
+  left: 1px;
+  position: absolute;
+  top: -6px;
+}
+
+.trophy-empty {
+  color: var(--muted);
+  margin: 2px 0;
+}
+
 .panel {
   background: var(--panel);
   border: 0;
